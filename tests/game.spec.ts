@@ -1,43 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-async function selectCharacter(page: Page) {
-  await page.goto('./');
-  await page.locator('#start-button').click();
-  await expect(page.locator('#character-screen')).toBeVisible();
-  await expect(page.locator('#screen-transition')).not.toHaveClass(/is-active/);
-  await expect(page.locator('#start-button')).toBeEnabled();
-}
-
-async function openTicket(page: Page, profile: 'excellent' | 'trickster' = 'excellent') {
-  await selectCharacter(page);
-  await page.locator('#continue-button').click();
-  await expect(page.locator('#input-screen')).toBeVisible();
-  // The existing screen transition keeps its input guard for 650 ms.
-  await page.waitForTimeout(700);
-  await page.locator('#player-surname').fill('<img src=x onerror=alert(1)>');
-  await page.locator('#player-name').fill('Тест');
-  await page.locator('#player-group').fill('123');
-  await page.locator('#player-form button').click();
-  await expect(page.locator('#skills-screen')).toBeVisible();
-  await page.waitForTimeout(550);
-  const allocation = profile === 'trickster'
-    ? [['cunning', 4], ['charisma', 4], ['attention', 2]] as const
-    : [['knowledge', 4], ['logic', 4], ['attention', 2]] as const;
-  for (const [skill, count] of allocation) {
-    for (let i = 0; i < count; i++) await page.locator(`[data-skill="${skill}"] [data-delta="1"]`).click();
-  }
-  await page.locator('#skills-continue').click();
-  await expect(page.locator('#ticket-screen')).toBeVisible();
-}
-
-function monitor(page: Page) {
-  const errors: string[] = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('response', response => {
-    if (response.status() >= 400 && new URL(response.url()).hostname === '127.0.0.1') errors.push(`${response.status()} ${response.url()}`);
-  });
-  return errors;
-}
+import { test, expect } from '@playwright/test';
+import { selectCharacter, openTicket, monitor } from './helpers';
 
 test('title loads under 4 MiB and does not download hidden scenes/media', async ({ page }) => {
   const errors = monitor(page);
@@ -63,6 +25,7 @@ test('all regular characters and emotions have usable images and responsive port
         await page.evaluate(emotion => window.dispatchEvent(new CustomEvent('game:dialogue-line', { detail: { emotion } })), emotion);
         const image = page.locator(`.${gender}-panel .character-full-sprite.is-visible`);
         await expect(image).toHaveCount(1);
+        await expect(image).toHaveAttribute('src', new RegExp(`/${emotion}\\.webp$`));
         await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
       }
     }

@@ -1,5 +1,6 @@
 import './style.css';
 import { createAudio } from './media';
+import { loadImage, warmImages, readyImages, prepareAudio, swapImage } from './asset-loading';
 import { gameStorage } from './storage';
 
 type Gender = 'male' | 'female';
@@ -271,18 +272,27 @@ type CharacterEmotion = 'normal' | 'confident' | 'smile' | 'thinking' | 'worried
 let activeEmotion: CharacterEmotion = 'normal';
 const emotionNames: CharacterEmotion[] = ['normal', 'confident', 'smile', 'thinking', 'worried'];
 function selectedCharacterKey(): string { return selection.gender === 'female' ? `female${selection.femalePreset + 1}` : `male${selection.malePreset + 1}`; }
+function selectedSpritePath(emotion: CharacterEmotion = 'normal'): string {
+  return teacherPlayerSpriteSrc(emotion);
+}
+function warmSelectedEmotions(): void {
+  warmImages(emotionNames.map(emotion => selectedSpritePath(emotion)));
+}
+const selectionAssets = ['/assets/character_select_background.webp', '/assets/character_selector_male.webp', '/assets/character_selector_female.webp'];
+const corridorAssets = ['/assets/corridor-background.webp', '/assets/corridor-dialogue-frame.webp'];
+const classroomAssets = ['/assets/classroom-last-exam-background.webp', '/assets/corridor-dialogue-frame.webp'];
 function applyCharacterEmotion(emotion: string = 'normal'): void {
   activeEmotion = emotionNames.includes(emotion as CharacterEmotion) ? emotion as CharacterEmotion : 'normal';
   const key = selectedCharacterKey();
   const sprite = characterSprites[key];
   const folder = key.startsWith('female') ? key.replace('female', 'student_girl') : key === 'male6' ? 'student_male6' : key === 'male7' ? 'student_male7' : key.replace('male', 'student_boy');
   const emotionSrc = `/assets/characters/${folder}/${activeEmotion}.webp`;
-  if (sprite) {
-    sprite.src = emotionSrc;
+  if (sprite && !characterScreen?.classList.contains('is-hidden')) {
+    void swapImage(sprite, emotionSrc);
     sprite.alt = `Выбранный персонаж: ${activeEmotion === 'normal' ? 'обычное состояние' : activeEmotion}`;
   }
   const storySprite = document.getElementById('corridor-character-sprite') as HTMLImageElement | null;
-  if (storySprite) {
+  if (storySprite && !document.getElementById('corridor-screen')?.classList.contains('is-hidden')) {
     storySprite.onerror = () => {
       storySprite.onerror = null;
       storySprite.src = selection.gender === 'female'
@@ -300,7 +310,7 @@ function applyCharacterEmotion(emotion: string = 'normal'): void {
     if (storySprite.getAttribute('src') !== emotionSrc) {
       if (!reduceMotion) storySprite.classList.add('emotion-crossfade');
       storySprite.addEventListener('load', () => storySprite.classList.remove('emotion-crossfade'), { once: true });
-      storySprite.src = emotionSrc;
+      void swapImage(storySprite, emotionSrc);
     }
     storySprite.dataset.emotion = activeEmotion;
     if (!reduceMotion) storySprite.classList.add(motionByEmotion[activeEmotion]);
@@ -545,13 +555,14 @@ function fadeOutCorridorAudio(duration = 1400): Promise<void> {
   });
 }
 function startClassroomMusic(): void {
+  prepareAudio(classroomMusic);
   if (classroomMusicFadeTimer !== undefined) window.clearInterval(classroomMusicFadeTimer);
   classroomMusic.pause(); classroomMusic.currentTime = 0; classroomMusic.volume = 0;
   void classroomMusic.play().then(() => {
     showNowPlaying({ title: 'Aria Math', artist: 'C418', spotifyQuery: 'C418 Aria Math', mood: 'green' });
     const start = performance.now();
     classroomMusicFadeTimer = window.setInterval(() => {
-      const progress = Math.min(1, (performance.now() - start) / 1800);
+      const progress = Math.min(1, (performance.now() - start) / 600);
       classroomMusic.volume = 0.62 * progress;
       if (progress >= 1 && classroomMusicFadeTimer !== undefined) {
         window.clearInterval(classroomMusicFadeTimer); classroomMusicFadeTimer = undefined;
@@ -671,14 +682,41 @@ function fadeOutIntroMusic(duration = 1600): void {
   }, 40);
 }
 
+function corridorTrack(): string {
+  const archetypeName = getArchetype().name.toLocaleUpperCase('ru-RU');
+  return isDevilPresetSelected() ? '/audio/easter-eggs/devil-corridor.mp3' : isSecretPresetSelected() ? '/audio/easter-eggs/welcome-to-san-andreas.mp3' : (ARCHETYPE_TRACKS[archetypeName] ?? ARCHETYPE_TRACKS['УНИВЕРСАЛ']);
+}
+function prepareCorridor(): void {
+  if (preparedFriendFor !== selectedCharacterKey()) {
+    corridorFriend = chooseCorridorFriend();
+    preparedFriendFor = selectedCharacterKey();
+  }
+  const key = selectedCharacterKey();
+  const track = corridorTrack();
+  const firstImages = [...corridorAssets, selectedSpritePath('thinking'), `/assets/characters/${corridorFriend.folder}/thinking.webp`];
+  // Promote entry assets out of the speculative queue. Start the future audio only
+  // after the entry artwork, so a large track cannot starve the first scene's images.
+  void Promise.all(firstImages.map(source => loadImage(source))).then(() => {
+    if (selectedCharacterKey() !== key || corridorTrack() !== track) return;
+    prepareAudio(archetypeMusic, track);
+    prepareAudio(corridorAmbience);
+    prepareClassroom();
+  });
+}
+function prepareClassroom(): void {
+  // Called while the player is still reading corridor dialogue.
+  void Promise.all(classroomAssets.map(source => loadImage(source))).then(() => {
+    prepareAudio(classroomMusic);
+    prepareAudio(classroomDoorSound);
+  });
+}
 function startArchetypeMusic(): void {
   if (corridorMusicStarted) return;
-  const archetypeName = getArchetype().name.toLocaleUpperCase('ru-RU');
-  const track = isDevilPresetSelected() ? '/audio/easter-eggs/devil-corridor.mp3' : isSecretPresetSelected() ? '/audio/easter-eggs/welcome-to-san-andreas.mp3' : (ARCHETYPE_TRACKS[archetypeName] ?? ARCHETYPE_TRACKS['УНИВЕРСАЛ']);
+  const track = corridorTrack();
   corridorMusicStarted = true;
   if (archetypeMusicFadeTimer !== undefined) window.clearInterval(archetypeMusicFadeTimer);
   archetypeMusic.pause();
-  archetypeMusic.src = track;
+  prepareAudio(archetypeMusic, track);
   archetypeMusic.currentTime = 0;
   const nowPlayingByPath: Record<string, NowPlayingTrack> = {
     '/audio/archetypes/archetype-excellent.mp3': { title: 'RV 269 «Весна»: I. Allegro', artist: 'Антонио Вивальди', spotifyQuery: 'Antonio Vivaldi RV 269 Spring I Allegro', yandexUrl: 'https://music.yandex.ru/album/10846125/track/66491628?ref_id=6255D249-7199-4C4B-96FA-D5D8C09E5DE7&utm_medium=share_link_tg&utm_source=mobile_ios', mood: 'yellow', cover: '/assets/music-covers/vivaldi.webp' },
@@ -702,7 +740,7 @@ function startArchetypeMusic(): void {
     void corridorAmbience.play().then(() => {
       const ambienceStartedAt = performance.now();
       const ambienceFadeTimer = window.setInterval(() => {
-        const progress = Math.min(1, (performance.now() - ambienceStartedAt) / 1100);
+        const progress = Math.min(1, (performance.now() - ambienceStartedAt) / 500);
         if (corridorAmbience) corridorAmbience.volume = 0.90 * progress;
         if (progress >= 1) window.clearInterval(ambienceFadeTimer);
       }, 40);
@@ -714,7 +752,7 @@ function startArchetypeMusic(): void {
     const startedAt = performance.now();
     const targetVolume = 0.60;
     archetypeMusicFadeTimer = window.setInterval(() => {
-      const progress = Math.min(1, (performance.now() - startedAt) / 1100);
+      const progress = Math.min(1, (performance.now() - startedAt) / 500);
       archetypeMusic.volume = targetVolume * progress;
       if (progress >= 1 && archetypeMusicFadeTimer !== undefined) {
         window.clearInterval(archetypeMusicFadeTimer);
@@ -794,34 +832,51 @@ function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket
   document.getElementById('classroom-classmates-screen')?.setAttribute('aria-hidden', String(!showClassroomClassmates));
   document.getElementById('teacher-intro-screen')?.setAttribute('aria-hidden', String(!showTeacherIntro));
   document.getElementById('exam-screen')?.setAttribute('aria-hidden', String(!showExam));
-  if (showCharacter) { hideNowPlaying(); renderSelection(); }
+  if (showCharacter) {
+    hideNowPlaying(); renderSelection();
+    warmImages(['/assets/input_screen_background.webp', '/assets/notebook_form_transparent.webp']);
+  }
+  if (showInput) {
+    // Prepare the first playable scene before speculative alternate emotions.
+    warmImages([...corridorAssets, ...classroomAssets, selectedSpritePath('thinking'), '/assets/student-ticket.webp']);
+  }
   if (showSkills) renderSkills();
-  if (showTicket) renderTicket();
+  if (showTicket) { renderTicket(); prepareCorridor(); }
 }
+let selectionRenderVersion = 0;
 function renderSelection(): void {
   syncSecretIdentity();
   applyCharacterEmotion(activeEmotion);
-  maleBoySprites.forEach((sprite, index) => {
-    const visible = selection.gender === 'male' && selection.malePreset === index && (index !== SECRET_MALE_PRESET || secretPresetUnlocked) && (index !== DEVIL_MALE_PRESET || devilPresetUnlocked);
-    sprite?.classList.toggle('is-visible', visible);
-    sprite?.setAttribute('aria-hidden', String(!visible));
-  });
-  const showGirl1 = selection.gender === 'female' && selection.femalePreset === 0;
-  const showGirl2 = selection.gender === 'female' && selection.femalePreset === 1;
-  const showGirl3 = selection.gender === 'female' && selection.femalePreset === 2;
-  const showGirl4 = selection.gender === 'female' && selection.femalePreset === 3;
-  const showGirl5 = selection.gender === 'female' && selection.femalePreset === 4;
-  femaleGirl1Sprite?.classList.toggle('is-visible', showGirl1);
-  femaleGirl1Sprite?.setAttribute('aria-hidden', String(!showGirl1));
-  femaleGirl2Sprite?.classList.toggle('is-visible', showGirl2);
-  femaleGirl2Sprite?.setAttribute('aria-hidden', String(!showGirl2));
-  femaleGirl3Sprite?.classList.toggle('is-visible', showGirl3);
-  femaleGirl3Sprite?.setAttribute('aria-hidden', String(!showGirl3));
-  femaleGirl4Sprite?.classList.toggle('is-visible', showGirl4);
-  femaleGirl4Sprite?.setAttribute('aria-hidden', String(!showGirl4));
-  femaleGirl5Sprite?.classList.toggle('is-visible', showGirl5);
-  femaleGirl5Sprite?.setAttribute('aria-hidden', String(!showGirl5));
-document.querySelectorAll<HTMLElement>('.selector-panel').forEach((panel) => {
+  const version = ++selectionRenderVersion;
+  if (characterScreen && !characterScreen.classList.contains('is-hidden')) {
+    characterScreen.setAttribute('aria-busy', 'true');
+    void loadImage(selectedSpritePath(activeEmotion)).then(loaded => {
+      if (version !== selectionRenderVersion) return;
+      characterScreen.removeAttribute('aria-busy');
+      if (!loaded) { showToast('Не удалось загрузить персонажа. Выберите его ещё раз.'); return; }
+      maleBoySprites.forEach((sprite, index) => {
+        const visible = selection.gender === 'male' && selection.malePreset === index && (index !== SECRET_MALE_PRESET || secretPresetUnlocked) && (index !== DEVIL_MALE_PRESET || devilPresetUnlocked);
+        sprite?.classList.toggle('is-visible', visible);
+        sprite?.setAttribute('aria-hidden', String(!visible));
+      });
+      const showGirl1 = selection.gender === 'female' && selection.femalePreset === 0;
+      const showGirl2 = selection.gender === 'female' && selection.femalePreset === 1;
+      const showGirl3 = selection.gender === 'female' && selection.femalePreset === 2;
+      const showGirl4 = selection.gender === 'female' && selection.femalePreset === 3;
+      const showGirl5 = selection.gender === 'female' && selection.femalePreset === 4;
+      femaleGirl1Sprite?.classList.toggle('is-visible', showGirl1);
+      femaleGirl1Sprite?.setAttribute('aria-hidden', String(!showGirl1));
+      femaleGirl2Sprite?.classList.toggle('is-visible', showGirl2);
+      femaleGirl2Sprite?.setAttribute('aria-hidden', String(!showGirl2));
+      femaleGirl3Sprite?.classList.toggle('is-visible', showGirl3);
+      femaleGirl3Sprite?.setAttribute('aria-hidden', String(!showGirl3));
+      femaleGirl4Sprite?.classList.toggle('is-visible', showGirl4);
+      femaleGirl4Sprite?.setAttribute('aria-hidden', String(!showGirl4));
+      femaleGirl5Sprite?.classList.toggle('is-visible', showGirl5);
+      femaleGirl5Sprite?.setAttribute('aria-hidden', String(!showGirl5));
+    });
+  }
+  document.querySelectorAll<HTMLElement>('.selector-panel').forEach((panel) => {
     const gender = panel.dataset.gender as Gender;
     const active = selection.gender === gender;
     panel.classList.toggle('is-active', active);
@@ -872,6 +927,11 @@ function showToast(message: string): void {
   toastTimeout = window.setTimeout(() => toast.classList.remove('is-visible'), 3400);
 }
 
+const warmSelection = () => warmImages([...selectionAssets, selectedSpritePath()]);
+startButton?.addEventListener('pointerenter', warmSelection);
+startButton?.addEventListener('focus', warmSelection);
+startButton?.addEventListener('touchstart', warmSelection, { passive: true });
+
 startButton?.addEventListener('click', async () => {
   if (isTransitioning) return;
   // Must be called before awaiting the screen transition: this click is the browser's user gesture.
@@ -879,9 +939,10 @@ startButton?.addEventListener('click', async () => {
   isTransitioning = true;
   startButton.disabled = true;
 
+  const selectionReady = readyImages([...selectionAssets, selectedSpritePath()]);
   // Fade to dark for half a second, switch screens underneath, then reveal the new screen.
   transitionOverlay?.classList.add('is-active');
-  await wait(500);
+  await Promise.all([wait(500), selectionReady]);
 
   characterScreen?.classList.add('screen-entering');
   showScreen('character');
@@ -1018,6 +1079,15 @@ document.querySelectorAll<HTMLElement>('.selector-panel').forEach((panel) => {
     changePreset(gender, 1);
   });
   panel.querySelectorAll<HTMLButtonElement>('.portrait-slot').forEach((slot) => {
+    const warmPortrait = () => {
+      if (slot.classList.contains('is-hidden')) return;
+      const index = Number(slot.dataset.index);
+      const folder = gender === 'female' ? `student_girl${index + 1}` : index === 5 ? 'student_male6' : index === 6 ? 'student_male7' : `student_boy${index + 1}`;
+      warmImages([`/assets/characters/${folder}/normal.webp`]);
+    };
+    slot.addEventListener('pointerenter', warmPortrait);
+    slot.addEventListener('focus', warmPortrait);
+    slot.addEventListener('touchstart', warmPortrait, { passive: true });
     slot.addEventListener('click', (event) => {
       event.stopPropagation();
       setPreset(gender, Number(slot.dataset.index));
@@ -1037,7 +1107,10 @@ function finishIntroVideoAndEnterCorridor(): void {
   const video = document.getElementById('intro-video') as HTMLVideoElement | null;
   if (video) {
     video.pause();
-    try { video.currentTime = 0; } catch { /* metadata may not have loaded yet */ }
+    // A paused video may keep downloading megabytes after Skip. Abort that fetch;
+    // the <source> remains available for the next replay's user-initiated play().
+    video.preload = 'none';
+    video.load();
   }
   overlay?.classList.add('is-hidden');
   overlay?.setAttribute('aria-hidden', 'true');
@@ -1056,6 +1129,7 @@ function playIntroVideoBeforeCorridor(): void {
   }
 
   introVideoInProgress = true;
+  prepareCorridor();
   disclaimer.classList.remove('is-hidden');
   disclaimer.setAttribute('aria-hidden', 'false');
   hideNowPlaying();
@@ -1114,6 +1188,7 @@ let corridorBeats: CorridorBeat[] = [];
 let corridorIndex = 0;
 let corridorChoiceMade = false;
 type FriendPreset = { key: string; gender: 'male' | 'female'; folder: string };
+let preparedFriendFor: string | null = null;
 let corridorFriend: FriendPreset = { key: 'female1', gender: 'female', folder: 'student_girl1' };
 function chooseCorridorFriend(): FriendPreset {
   const available: FriendPreset[] = [
@@ -1145,7 +1220,7 @@ function showCorridorFriend(visible: boolean, emotion: CharacterEmotion = 'norma
     const availableEmotions: CharacterEmotion[] = ['normal', 'confident', 'smile', 'thinking', 'worried'];
     const safeEmotion = availableEmotions.includes(emotion) ? emotion : 'normal';
     const nextSrc = `/assets/characters/${corridorFriend.folder}/${safeEmotion}.webp`;
-    if (sprite.getAttribute('src') !== nextSrc) sprite.src = nextSrc;
+    if (sprite.getAttribute('src') !== nextSrc) void swapImage(sprite, nextSrc);
     sprite.alt = `${corridorFriend.gender === 'female' ? 'Подруга' : 'Друг'} персонажа: ${safeEmotion === 'normal' ? 'обычное выражение' : safeEmotion}`;
     sprite.dataset.emotion = safeEmotion;
     // Emotion changes are instant; do not restart the sprite entrance animation.
@@ -1255,25 +1330,29 @@ async function beginCorridorScene(): Promise<void> {
   // Freeze the archetype from the final skill allocation at the moment the player enters the corridor.
   // All later skill changes caused by exam answers affect scores only, not the archetype.
   if (!lockedArchetype) lockedArchetype = calculateArchetype();
-  corridorFriend = chooseCorridorFriend();
+  prepareCorridor();
   showCorridorFriend(false);
   corridorBeats=corridorBranch(); corridorIndex=0; corridorChoiceMade=false;
   const name=document.getElementById('corridor-player-name'); if(name){name.textContent=corridorPlayerName().toLocaleUpperCase('ru-RU'); name.title=name.textContent; name.classList.toggle('is-long-name', name.textContent.length > 7);}
   const next=document.getElementById('corridor-next'); next?.classList.remove('is-hidden');
 
+  const corridorReady = readyImages([...corridorAssets, selectedSpritePath('thinking'), `/assets/characters/${corridorFriend.folder}/thinking.webp`]);
   // Start the archetype track while the transition is fully black.
   startArchetypeMusic();
   fadeOutIntroMusic(1200);
   transitionOverlay?.classList.add('is-active', 'is-black-intro');
   transitionOverlay?.setAttribute('aria-hidden', 'false');
-  // Hold a clean black screen for two seconds while the new music begins.
-  await wait(2000);
+  // Overlap the short fade with actual asset readiness; no unconditional two-second hold.
+  await Promise.all([wait(250), corridorReady]);
   showScreen('corridor');
   // Run duration starts at the first visible corridor scene, not during the intro.
   corridorRunStartedAt = Date.now();
   const corridorScreen = document.getElementById('corridor-screen');
   corridorScreen?.classList.remove('corridor-scene-entered');
   renderCorridorBeat();
+  prepareClassroom();
+  warmSelectedEmotions();
+  warmImages(emotionNames.map(emotion => `/assets/characters/${corridorFriend.folder}/${emotion}.webp`));
   // Allow the corridor to paint beneath the overlay before beginning a slower reveal.
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   corridorScreen?.classList.add('corridor-scene-entered');
@@ -1382,17 +1461,20 @@ function renderClassroomBeat(): void {
 }
 // v67.31 — removed the male preset #3 entrance sound; the preset itself remains available.
 async function beginClassroomIntro(): Promise<void> {
-  // Crossfade out the corridor ambience/music before starting the shared classroom score.
-  await fadeOutCorridorAudio(1600);
+  prepareClassroom();
+  const roomReady = readyImages(classroomAssets);
+  const corridorFade = fadeOutCorridorAudio(500);
+  startClassroomMusic();
+  await Promise.all([roomReady, corridorFade]);
   // One-shot door SFX on entering the auditorium; it is deliberately not a Now Playing track.
   playUiSound(classroomDoorSound);
-  startClassroomMusic();
   if (isSecretPresetSelected()) { try { secretClassroomSound.pause(); secretClassroomSound.currentTime = 0; void secretClassroomSound.play().catch(() => {}); } catch {} }
   classroomBeats = buildClassroomBeats();
   classroomIndex = 0;
   const next = document.getElementById('classroom-next') as HTMLButtonElement | null;
   if (next) next.onclick = null;
   showScreen('classroom-intro');
+  warmImages(['/assets/classroom-wall-gallery-background.jpeg']);
   const screen = document.getElementById('classroom-intro-screen');
   screen?.classList.remove('classroom-entered');
   renderClassroomBeat();
@@ -1511,10 +1593,15 @@ function renderGalleryBeat(): void {
   applyCharacterEmotion(beat.emotion);
   next.onclick = () => { galleryIndex++; renderGalleryBeat(); };
 }
-function beginClassroomGallery(): void {
+async function beginClassroomGallery(): Promise<void> {
+  if (isTransitioning) return;
+  isTransitioning = true;
+  await readyImages(['/assets/classroom-wall-gallery-background.jpeg']);
   galleryBeats = buildGalleryBeats();
   galleryIndex = 0;
   showScreen('classroom-gallery');
+  isTransitioning = false;
+  warmImages(['/assets/classroom-classmates-background.jpeg']);
   const screen = document.getElementById('classroom-gallery-screen');
   screen?.classList.remove('gallery-entered');
   renderGalleryBeat();
@@ -1649,10 +1736,12 @@ async function transitionToClassmatesScene(): Promise<void> {
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   overlay?.classList.add('is-active');
   await wait(420);
+  await readyImages(['/assets/classroom-classmates-background.jpeg']);
   classmatesBeats = buildClassmatesBeats();
   classmatesIndex = 0;
   arthurGreetingSoundPlayed = false;
   showScreen('classroom-classmates');
+  warmImages([...Object.values(teacherEmotionFiles), '/assets/exam-desk-background.webp']);
   const screen = document.getElementById('classroom-classmates-screen');
   screen?.classList.remove('classmates-entered');
   renderClassmatesBeat();
@@ -2694,7 +2783,8 @@ function showExcellentEndingBeat(): void {
   const text = document.getElementById('excellent-ending-text');
   const progress = document.getElementById('excellent-ending-progress');
   const scene = document.getElementById('excellent-ending-scene');
-  if (image) { image.src = beat.image; image.alt = beat.alt; }
+  if (image) { void swapImage(image, beat.image); image.alt = beat.alt; }
+  warmImages(excellentEndingBeats.slice(excellentEndingIndex + 1, excellentEndingIndex + 3).map(next => next.image));
   // Play the door sound when mom enters the room, and again as the student leaves the classroom.
   const isSpecialArchetypeEnding = excellentEndingBeats[0]?.image.includes('/brave/') || excellentEndingBeats[0]?.image.includes('/trickster/') || excellentEndingBeats[0]?.image.includes('/charisma/') || excellentEndingBeats[0]?.image.includes('/analyst/') || excellentEndingBeats[0]?.image.includes('/observer/') || excellentEndingBeats[0]?.image.includes('/universal/');
   const isBraveEnding = excellentEndingBeats[0]?.image.includes('/brave/');
@@ -2913,6 +3003,7 @@ function showFinalResultScreen(): void {
       lockedArchetype = null;
       corridorMusicStarted = false; corridorRunStartedAt = 0; endingRunDurationMs = 0;
       corridorIndex = 0; corridorChoiceMade = false; corridorBeats = [];
+      preparedFriendFor = null;
       teacherFatigue = 0; teacherRelationship = 50; teacherBeats = []; teacherBeatIndex = 0;
       teacherChoiceMade = false; teacherSceneBusy = false;
       examQuestionIndex = 0; examCorrectCount = 0; examHintsUsed = 0; examCheatAttempts = 0;
@@ -3009,6 +3100,7 @@ function showFinalResultScreen(): void {
       corridorRunStartedAt = 0;
       endingRunDurationMs = 0;
       corridorIndex = 0; corridorChoiceMade = false;
+      preparedFriendFor = null;
       corridorBeats = []; corridorFriend = { key: 'female1', gender: 'female', folder: 'student_girl1' };
       teacherFatigue = 0; teacherRelationship = 50; teacherBeats = []; teacherBeatIndex = 0;
       teacherChoiceMade = false; teacherSceneBusy = false;
@@ -3127,6 +3219,7 @@ async function advanceExcellentEnding(): Promise<void> {
   excellentEndingTransition = true;
   if (next) next.disabled = true;
   const current = excellentEndingBeats[excellentEndingIndex];
+  const nextReady = readyImages([excellentEndingBeats[excellentEndingIndex + 1].image]);
   // After the flashback sequence (first three dialogue beats), hold black for 3 seconds
   // before revealing the present-day classroom.
   const isSpecialArchetypeEnding = excellentEndingBeats[0]?.image.includes('/brave/') || excellentEndingBeats[0]?.image.includes('/trickster/') || excellentEndingBeats[0]?.image.includes('/charisma/') || excellentEndingBeats[0]?.image.includes('/analyst/') || excellentEndingBeats[0]?.image.includes('/observer/') || excellentEndingBeats[0]?.image.includes('/universal/');
@@ -3134,7 +3227,7 @@ async function advanceExcellentEnding(): Promise<void> {
   const flashbackToClassroom = isBraveEnding ? excellentEndingIndex === 2 : isSpecialArchetypeEnding ? excellentEndingIndex === 1 : excellentEndingIndex === 2;
   if (flashbackToClassroom) {
     overlay?.classList.add('is-blackout');
-    await new Promise(resolve => window.setTimeout(resolve, 3000));
+    await Promise.all([wait(3000), nextReady]);
     excellentEndingIndex++;
     showExcellentEndingBeat();
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -3145,10 +3238,10 @@ async function advanceExcellentEnding(): Promise<void> {
   }
   if (current?.fade) {
     overlay?.classList.add('is-blackout');
-    await new Promise(resolve => window.setTimeout(resolve, 3000));
+    await Promise.all([wait(3000), nextReady]);
   } else {
     scene?.classList.add('is-fading');
-    await new Promise(resolve => window.setTimeout(resolve, 420));
+    await Promise.all([wait(420), nextReady]);
   }
   excellentEndingIndex++;
   showExcellentEndingBeat();
@@ -3157,7 +3250,7 @@ async function advanceExcellentEnding(): Promise<void> {
     overlay?.classList.remove('is-blackout');
   }
   excellentEndingTransition = false;
-    if (next) next.disabled = false;
+  if (next) next.disabled = false;
 }
 function startExcellentEnding(correctAnswers: number, endingType: 'brave' | 'trickster' | 'charisma' | 'analyst' | 'observer' | 'universal' | 'excellent' = 'excellent'): void {
   endingRunDurationMs = corridorRunStartedAt > 0 ? Math.max(0, Date.now() - corridorRunStartedAt) : 0;
@@ -3177,10 +3270,10 @@ function startExcellentEnding(correctAnswers: number, endingType: 'brave' | 'tri
   const next = document.getElementById('excellent-ending-next') as HTMLButtonElement | null;
   if (next) { next.disabled = false; next.innerHTML = 'ДАЛЕЕ <span>→</span>'; next.onclick = () => { void advanceExcellentEnding(); }; }
   // Three seconds of black before the first frame, followed by a gentle reveal.
-  window.setTimeout(() => {
+  void Promise.all([wait(3000), readyImages([excellentEndingBeats[0].image])]).then(() => {
     overlay.classList.remove('is-blackout');
     excellentEndingTransition = false;
-  }, 3000);
+  });
 }
 window.addEventListener('game:exam-scene-finished', (event: Event) => {
   const custom = event as CustomEvent<{ correct?: number; isExcellentEnding?: boolean; isTricksterEnding?: boolean; isCharismaEnding?: boolean; isAnalystEnding?: boolean; isBraveEnding?: boolean; isObserverEnding?: boolean; isUniversalEnding?: boolean; archetype?: string; cheatAttempts?: number; teacherFatigue?: number }>;

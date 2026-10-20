@@ -9,7 +9,7 @@
   </head>
   <body>
     <div id="app">
-      <audio id="intro-music" src="./audio/menu-gt4.mp3" preload="none" loop playsinline></audio>
+      <audio id="intro-music" src="./audio/menu-gt4.flac" preload="none" loop playsinline></audio>
       <audio id="corridor-ambience" src="./audio/corridor/people-chatting.flac" preload="none" loop playsinline></audio>
       <main class="game-root">
         <section class="game-stage start-screen" id="start-screen" aria-label="Главное меню Последний зачёт">
@@ -283,6 +283,7 @@
             <button class="intro-video-skip" id="intro-video-skip" type="button" aria-label="Пропустить вступительное видео">ПРОПУСТИТЬ <span>→</span></button>
           </section>
 
+        <div id="asset-loading-status" class="asset-loading-status" role="status" aria-live="polite" hidden>Подготавливаем сцену…</div>
         <div class="screen-transition" id="screen-transition" aria-hidden="true"></div>
       </main>
       <div class="orientation-overlay" id="orientation-overlay" aria-hidden="true">Поверните устройство горизонтально для лучшего отображения</div>
