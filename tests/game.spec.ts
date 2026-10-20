@@ -1,0 +1,155 @@
+import { test, expect, type Page } from '@playwright/test';
+
+async function selectCharacter(page: Page) {
+  await page.goto('./');
+  await page.locator('#start-button').click();
+  await expect(page.locator('#character-screen')).toBeVisible();
+  await expect(page.locator('#screen-transition')).not.toHaveClass(/is-active/);
+  await expect(page.locator('#start-button')).toBeEnabled();
+}
+
+async function openTicket(page: Page, profile: 'excellent' | 'trickster' = 'excellent') {
+  await selectCharacter(page);
+  await page.locator('#continue-button').click();
+  await expect(page.locator('#input-screen')).toBeVisible();
+  // The existing screen transition keeps its input guard for 650 ms.
+  await page.waitForTimeout(700);
+  await page.locator('#player-surname').fill('<img src=x onerror=alert(1)>');
+  await page.locator('#player-name').fill('Тест');
+  await page.locator('#player-group').fill('123');
+  await page.locator('#player-form button').click();
+  await expect(page.locator('#skills-screen')).toBeVisible();
+  await page.waitForTimeout(550);
+  const allocation = profile === 'trickster'
+    ? [['cunning', 4], ['charisma', 4], ['attention', 2]] as const
+    : [['knowledge', 4], ['logic', 4], ['attention', 2]] as const;
+  for (const [skill, count] of allocation) {
+    for (let i = 0; i < count; i++) await page.locator(`[data-skill="${skill}"] [data-delta="1"]`).click();
+  }
+  await page.locator('#skills-continue').click();
+  await expect(page.locator('#ticket-screen')).toBeVisible();
+}
+
+function monitor(page: Page) {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => {
+    if (response.status() >= 400 && new URL(response.url()).hostname === '127.0.0.1') errors.push(`${response.status()} ${response.url()}`);
+  });
+  return errors;
+}
+
+test('title loads under 4 MiB and does not download hidden scenes/media', async ({ page }) => {
+  const errors = monitor(page);
+  const requests: string[] = [];
+  page.on('request', req => requests.push(new URL(req.url()).pathname));
+  await page.goto('./');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('#start-button img')).toHaveJSProperty('complete', true);
+  expect(requests.filter(url => /\.(mp3|mp4|wav|flac)$/.test(url))).toEqual([]);
+  expect(requests.filter(url => /\/characters\/|\/endings\/|\/cameo\//.test(url))).toEqual([]);
+  const bytes = await page.evaluate(() => performance.getEntriesByType('resource').reduce((sum, item) => sum + (item as PerformanceResourceTiming).encodedBodySize, 0));
+  expect(bytes).toBeLessThan(4 * 1024 * 1024);
+  expect(errors).toEqual([]);
+});
+
+test('all regular characters and emotions have usable images and responsive portraits', async ({ page }) => {
+  const errors = monitor(page);
+  await selectCharacter(page);
+  for (const gender of ['male', 'female']) {
+    for (let i = 0; i < 5; i++) {
+      await page.locator(`.${gender}-panel .portrait-slot[data-index="${i}"]`).click();
+      for (const emotion of ['normal', 'smile', 'thinking', 'confident', 'worried']) {
+        await page.evaluate(emotion => window.dispatchEvent(new CustomEvent('game:dialogue-line', { detail: { emotion } })), emotion);
+        const image = page.locator(`.${gender}-panel .character-full-sprite.is-visible`);
+        await expect(image).toHaveCount(1);
+        await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+      }
+    }
+  }
+  const portrait = page.locator('.male-panel .portrait-slot[data-index="0"] img');
+  await expect.poll(() => portrait.evaluate((img: HTMLImageElement) => img.currentSrc)).toMatch(/card-(256|512)\.webp$/);
+  expect(errors).toEqual([]);
+});
+
+test('storage denial does not prevent character setup and the ticket', async ({ page }) => {
+  const errors = monitor(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Denied', 'SecurityError'); } });
+  });
+  await openTicket(page);
+  expect(errors).toEqual([]);
+  await expect(page.locator('#ticket-screen img[src="x"]')).toHaveCount(0);
+});
+
+test('corrupted saved female preset falls back to an existing character', async ({ page }) => {
+  const errors = monitor(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('last-exam-hesoyam-unlocked', 'true');
+    localStorage.setItem('last-exam-character-selection', JSON.stringify({ gender: 'female', malePreset: 0, femalePreset: 5 }));
+  });
+  await selectCharacter(page);
+  await expect(page.locator('#female-girl1-sprite')).toHaveClass(/is-visible/);
+  await expect.poll(() => page.locator('#female-girl1-sprite').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+for (const profile of ['excellent', 'trickster'] as const) {
+test(`play through corridor, classroom, exam and ${profile} ending without broken assets`, async ({ page }) => {
+  const errors = monitor(page);
+  await openTicket(page, profile);
+  await page.locator('#ticket-start').click();
+  await page.locator('#intro-video-skip').click();
+  await expect(page.locator('#corridor-screen')).toBeVisible();
+  let sawTricksterReaction = false;
+  // Follow the visible narrative controls, including choices and random cameo.
+  for (let step = 0; step < 180; step++) {
+    if ((await page.locator('#exam-dialogue-text').textContent())?.includes('И никаких лишних подозрений')) sawTricksterReaction = true;
+    if (await page.locator('#excellent-ending').isVisible()) break;
+    const candidates = [
+      '#cameo-next', '#corridor-choices button', '#corridor-exit', '#corridor-next',
+      '#classroom-next', '#gallery-next', '#classroom-classmates-choices button',
+      '#classmates-choices button', '#classmates-next', '#teacher-choices button',
+      '#teacher-intro-choices button', '#teacher-next', '#exam-answer-list button[data-answer-index="1"]', '#exam-next',
+    ];
+    let clicked = false;
+    for (const selector of candidates) {
+      const button = page.locator(`${selector}:visible`).first();
+      if (await button.count() && await button.isEnabled()) {
+        await button.click();
+        clicked = true;
+        break;
+      }
+    }
+    await page.waitForTimeout(clicked ? 80 : 150);
+  }
+  if (profile === 'trickster') expect(sawTricksterReaction).toBe(true);
+  await expect(page.locator('#excellent-ending')).toBeVisible();
+  for (let step = 0; step < 25; step++) {
+    if (await page.locator('#ending-credits-video').count()) break;
+    await page.locator('#excellent-ending-next').click();
+  }
+  await expect(page.locator('#ending-credits-video')).toBeVisible();
+  // Exercise the actual media completion handler without waiting for the whole film.
+  await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
+  await expect(page.locator('#final-result-screen')).toBeVisible();
+  await page.getByRole('button', { name: 'В ГЛАВНОЕ МЕНЮ', exact: true }).click();
+  await expect(page.locator('#start-screen')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+}
+
+test.describe('mobile landscape', () => {
+  test.use({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  test('character selection remains usable at high pixel density', async ({ page }) => {
+    const errors = monitor(page);
+    await selectCharacter(page);
+    await page.locator('.female-panel .portrait-slot[data-index="2"]').click();
+    const image = page.locator('#female-girl3-sprite');
+    await expect(image).toHaveClass(/is-visible/);
+    await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+    const portrait = page.locator('.female-panel .portrait-slot[data-index="2"] img');
+    await expect.poll(() => portrait.evaluate((img: HTMLImageElement) => img.currentSrc)).toMatch(/card-(256|512)\.webp$/);
+    expect(errors).toEqual([]);
+  });
+});

@@ -26,8 +26,8 @@ function fixGitHubPagesPublicPaths(): Plugin {
   }
 }
 
-export default defineConfig(({ command }) => ({
-  base: command === 'serve' ? '/' : '/posledniy-zachet/',
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'serve' && !isPreview ? '/' : '/posledniy-zachet/',
 
   plugins: [fixGitHubPagesPublicPaths()],
 }))

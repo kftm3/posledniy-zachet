@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }
-@font-face { font-family: "Lobster Two"; src: url("/fonts/LobsterTwo-Regular.otf") format("opentype"); font-display: swap; }
-@font-face { font-family: "Campus Display"; src: url("/fonts/DejaVuSansCondensed-Bold.ttf") format("truetype"); font-weight: 700 900; font-display: swap; }
+@font-face { font-family: "Lobster Two"; src: url("/fonts/LobsterTwo-Regular.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Campus Display"; src: url("/fonts/DejaVuSansCondensed-Bold.woff2") format("woff2"); font-weight: 700 900; font-display: swap; }
 :root { color-scheme: dark; font-family: Inter, "Segoe UI", Arial, sans-serif; background: #07122f; }
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #07122f; }
@@ -35,7 +35,7 @@ body { background: #07122f; }
 .screen-transition.is-active { opacity: 1; }\n.screen-transition.is-black-intro { background: #000; transition-duration: 650ms; }
 
 /* Approved main menu */
-.campus { position: absolute; inset: 0; z-index: -3; background-image: url('/assets/campus-background.png'); background-position: center center; background-repeat: no-repeat; background-size: cover; transform: scale(1.005); animation: campus-enter 1.1s ease-out both; }
+.campus { position: absolute; inset: 0; z-index: -3; background-image: url('/assets/campus-background.webp'); background-position: center center; background-repeat: no-repeat; background-size: cover; transform: scale(1.005); animation: campus-enter 1.1s ease-out both; }
 .shade { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(90deg, rgba(3,10,36,.62) 0%, rgba(3,10,36,.30) 34%, rgba(3,10,36,0) 64%), linear-gradient(0deg, rgba(3,8,27,.43) 0%, transparent 28%, transparent 76%); }
 .game-title { position: absolute; left: 7.5%; top: 15%; width: 39%; transform: rotate(-5deg); display: flex; flex-direction: column; align-items: flex-start; color: white; font-family: "Campus Display", Impact, "Arial Black", sans-serif; font-weight: 900; font-style: italic; text-transform: uppercase; line-height: .78; letter-spacing: -.055em; filter: drop-shadow(0 7px 5px rgba(0,0,20,.65)); animation: logo-enter .8s .12s cubic-bezier(.2,.8,.2,1) both; user-select: none; pointer-events: none; }
 .title-last { font-size: clamp(2.5rem, 6.2vw, 6.8rem); -webkit-text-stroke: 1px rgba(255,255,255,.8); text-shadow: 2px 2px 0 #192b63, 4px 4px 0 #101b46, 7px 9px 0 rgba(0,0,0,.48); }
@@ -55,7 +55,7 @@ body { background: #07122f; }
 
 /* Character selection page, composed from the user's supplied PNG assets. */
 .character-screen { background: #08142e; }
-.selection-background { position: absolute; inset: -1.5%; z-index: -3; background: url('/assets/character_select_background.png') center / cover no-repeat; transform: translate3d(0, 0, 0) scale(1.025); will-change: transform; animation: selection-background-float 7s ease-in-out infinite; }
+.selection-background { position: absolute; inset: -1.5%; z-index: -3; background: url('/assets/character_select_background.webp') center / cover no-repeat; transform: translate3d(0, 0, 0) scale(1.025); will-change: transform; animation: selection-background-float 7s ease-in-out infinite; }
 .selection-shade { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(90deg, rgba(2,8,28,.42), rgba(3,9,27,.08) 50%, rgba(2,8,28,.18)), linear-gradient(0deg, rgba(3,8,25,.2), transparent 28%); }
 .selection-heading {
   position: absolute;
@@ -309,7 +309,7 @@ body { background: #07122f; }
 
 /* Player data screen: notebook cut cleanly; live fields aligned to the diagonal printed boxes. */
 .input-screen { background: #09142e; }
-.input-background { position:absolute; inset:-1.5%; z-index:-3; background:url('/assets/input_screen_background.png') center / cover no-repeat; transform:translate3d(0,0,0) scale(1.025); will-change:transform; animation:selection-background-float 7s ease-in-out infinite; }
+.input-background { position:absolute; inset:-1.5%; z-index:-3; background:url('/assets/input_screen_background.webp') center / cover no-repeat; transform:translate3d(0,0,0) scale(1.025); will-change:transform; animation:selection-background-float 7s ease-in-out infinite; }
 .input-shade { position:absolute; inset:0; z-index:-2; background:linear-gradient(0deg,rgba(2,8,25,.28),rgba(2,8,25,.12)); pointer-events:none; }
 .notebook-wrap { position:absolute; left:50%; top:50%; height:min(96%, 96vh); width:auto; aspect-ratio:1312 / 1199; max-width:91%; transform:translate(-50%,-50%); filter:drop-shadow(0 12px 22px rgba(0,0,0,.28)); transition:transform 220ms ease, filter 220ms ease; will-change:transform,filter; }
 .notebook-wrap:hover { transform:translate(-50%,calc(-50% - 5px)) scale(1.006); filter:drop-shadow(0 20px 30px rgba(0,0,0,.38)) drop-shadow(0 0 7px rgba(40,115,255,.12)); }
@@ -342,7 +342,7 @@ body { background: #07122f; }
 
 /* Skills allocation screen — matching the approved blue campus HUD reference. */
 .skills-screen { color:#f4f8ff; background:#06112b; font-family:'Segoe UI',Arial,sans-serif; }
-.skills-background { position:absolute; inset:-1.5%; z-index:-3; background:url('/assets/character_select_background.png') center/cover no-repeat; filter:saturate(.82); transform:translate3d(0,0,0) scale(1.025); will-change:transform; animation:selection-background-float 7s ease-in-out infinite; }
+.skills-background { position:absolute; inset:-1.5%; z-index:-3; background:url('/assets/character_select_background.webp') center/cover no-repeat; filter:saturate(.82); transform:translate3d(0,0,0) scale(1.025); will-change:transform; animation:selection-background-float 7s ease-in-out infinite; }
 .skills-shade { position:absolute; inset:0; z-index:-2; background:linear-gradient(90deg,rgba(2,7,24,.83),rgba(3,10,30,.66) 56%,rgba(2,8,24,.78)),linear-gradient(0deg,rgba(1,6,20,.68),rgba(2,8,24,.18)); }
 .skills-header { position:absolute; top:2.1%; left:29%; width:48%; text-align:center; }
 .skills-header h1 { display:inline-block; margin:0; padding:.07em .35em .13em; color:#08183d; background:#f6f9ff; clip-path:polygon(2% 0,100% 0,97% 82%,89% 100%,0 88%); font:900 clamp(20px,2.65vw,43px)/1.1 'Campus Display','Segoe UI',sans-serif; font-style:italic; letter-spacing:-.035em; transform:rotate(-1deg); filter:drop-shadow(0 5px 0 #0758e8); }
@@ -407,7 +407,7 @@ body { background: #07122f; }
 
 /* Student ID confirmation screen — field positions aligned to the printed artwork */
 .ticket-screen{color:#071b4c;font-family:'Segoe UI',Arial,sans-serif;background:#07142f;}
-.ticket-background{position:absolute;inset:-1.5%;z-index:-3;background:url('/assets/input_screen_background.png') center/cover no-repeat;animation:selection-background-float 7s ease-in-out infinite;transform:scale(1.025);}
+.ticket-background{position:absolute;inset:-1.5%;z-index:-3;background:url('/assets/input_screen_background.webp') center/cover no-repeat;animation:selection-background-float 7s ease-in-out infinite;transform:scale(1.025);}
 .ticket-shade{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(1,7,25,.50),rgba(2,9,30,.08) 48%,rgba(1,7,25,.12)),linear-gradient(0deg,rgba(1,7,25,.30),transparent 45%);}
 .ticket-heading{position:absolute;left:2.2%;top:2.8%;width:32%;color:#fff;z-index:2;}
 .ticket-heading h1{display:flex;flex-direction:column;gap:.06em;margin:0;padding:.18em .5em .25em;background:linear-gradient(105deg,#fff 0%,#f4f7ff 72%,transparent 100%);clip-path:polygon(2% 0,100% 0,91% 75%,100% 90%,0 100%);color:#07183f;font:900 clamp(18px,2.25vw,35px)/1.05 'Campus Display','Segoe UI',sans-serif;font-style:italic;transform:rotate(-2deg);filter:drop-shadow(0 5px 0 #0758e8);}
@@ -437,11 +437,11 @@ body { background: #07122f; }
 
 /* First story scene: corridor and the transparent comic dialogue panel */
 .corridor-screen{background:#10172a;color:#fff;}
-.corridor-background{position:absolute;inset:0;background:url('/assets/corridor-background.png') center center/cover no-repeat;transform:scale(1.015);}
+.corridor-background{position:absolute;inset:0;background:url('/assets/corridor-background.webp') center center/cover no-repeat;transform:scale(1.015);}
 .corridor-vignette{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,13,34,.08) 0%,rgba(5,13,34,.05) 44%,rgba(3,8,24,.72) 100%),linear-gradient(90deg,rgba(5,12,30,.12),transparent 55%,rgba(5,12,30,.18));pointer-events:none;}
 .corridor-topline{position:absolute;left:3.2%;top:3.5%;display:flex;gap:1rem;align-items:center;font:900 clamp(11px,.9vw,16px)/1 'Campus Display','Segoe UI',sans-serif;letter-spacing:.12em;color:#fff;text-shadow:0 2px 8px #06122e;}
 .corridor-topline span:first-child{padding:.65em 1em;background:#0639bd;clip-path:polygon(4% 0,100% 0,96% 100%,0 100%);box-shadow:0 4px 0 #061a52;}
-.corridor-dialogue-layout{position:absolute;z-index:3;left:2.5%;right:2.5%;bottom:4.2%;height:clamp(210px,31vh,350px);display:grid;grid-template-columns:minmax(0,1.72fr) minmax(245px,.78fr);align-items:stretch;gap:1.5%;background:url('/assets/corridor-dialogue-frame.png') center center/100% 100% no-repeat;filter:drop-shadow(0 12px 20px rgba(0,0,0,.42));padding:2.2% 2.3% 2.2% 2.8%;}
+.corridor-dialogue-layout{position:absolute;z-index:3;left:2.5%;right:2.5%;bottom:4.2%;height:clamp(210px,31vh,350px);display:grid;grid-template-columns:minmax(0,1.72fr) minmax(245px,.78fr);align-items:stretch;gap:1.5%;background:url('/assets/corridor-dialogue-frame.webp') center center/100% 100% no-repeat;filter:drop-shadow(0 12px 20px rgba(0,0,0,.42));padding:2.2% 2.3% 2.2% 2.8%;}
 .corridor-dialogue-left{min-width:0;display:flex;flex-direction:column;position:relative;padding:1% 2% 1% 1%;color:#fff;}
 .corridor-player-name{align-self:flex-start;box-sizing:border-box;width:clamp(150px,22vw,330px);max-width:39%;min-width:0;height:clamp(32px,4.8vh,48px);display:flex;align-items:center;padding:.3em 1.1em .32em .7em;margin:0 0 .55em -1.2%;font:900 clamp(12px,.92vw,17px)/1.05 'Campus Display','Segoe UI',sans-serif;text-transform:uppercase;letter-spacing:.025em;color:#061943;background:linear-gradient(105deg,#fff 0%,#e8f2ff 90%,transparent 100%);clip-path:polygon(0 0,100% 0,94% 100%,0 100%);text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;}
 .corridor-player-name.is-long-name{font-size:clamp(10px,.72vw,13px);letter-spacing:0;padding-right:1.5em;}
@@ -590,7 +590,7 @@ body { background: #07122f; }
   padding:2.2% 3.05% 2.2% 3.05% !important;
   grid-template-columns:minmax(0,1.72fr) minmax(300px,.78fr) !important;
   gap:1.2% !important;
-  background-image:url('/assets/corridor-dialogue-frame.png') !important;
+  background-image:url('/assets/corridor-dialogue-frame.webp') !important;
   background-position:center center !important;
   background-repeat:no-repeat !important;
   background-size:100% 100% !important;
@@ -1096,7 +1096,7 @@ body { background: #07122f; }
 
 /* v67.8 — classroom entrance thoughts scene */
 .classroom-intro-screen { background:#171923; }
-.classroom-intro-background { position:absolute; inset:-2.5%; background:url('/assets/classroom-last-exam-background.png') center center / cover no-repeat; transform:scale(1.015); transform-origin:50% 48%; will-change:transform; animation:classroom-first-person-sway 24s ease-in-out infinite alternate; }
+.classroom-intro-background { position:absolute; inset:-2.5%; background:url('/assets/classroom-last-exam-background.webp') center center / cover no-repeat; transform:scale(1.015); transform-origin:50% 48%; will-change:transform; animation:classroom-first-person-sway 24s ease-in-out infinite alternate; }
 .classroom-intro-shade { position:absolute; inset:0; background:linear-gradient(0deg,rgba(3,9,25,.78) 0%,rgba(3,9,25,.34) 29%,rgba(3,9,25,.02) 67%),linear-gradient(90deg,rgba(3,9,25,.12),transparent 65%); }
 .classroom-topline { position:absolute; top:2.4%; left:3%; right:3%; display:flex; justify-content:space-between; gap:1rem; color:rgba(255,255,255,.88); font-size:clamp(.65rem,1vw,1rem); font-weight:800; letter-spacing:.16em; text-shadow:0 2px 8px #000; }
 .classroom-dialogue-layout { left:2.5%; right:2.5%; bottom:4.2%; min-height:0; height:clamp(210px,31vh,350px); color:#fff; }
@@ -1136,7 +1136,7 @@ body { background: #07122f; }
 
 /* v67.16 — teacher scene: teacher left, mirrored player right, same comic dialogue frame. */
 .teacher-intro-screen { background:#171923; overflow:hidden; }
-.teacher-intro-background { position:absolute; inset:-1.5%; background:url('/assets/classroom-last-exam-background.png') center center / cover no-repeat; transform:scale(1.012); transform-origin:50% 48%; animation:teacher-room-sway 25s ease-in-out infinite alternate; will-change:transform; }
+.teacher-intro-background { position:absolute; inset:-1.5%; background:url('/assets/classroom-last-exam-background.webp') center center / cover no-repeat; transform:scale(1.012); transform-origin:50% 48%; animation:teacher-room-sway 25s ease-in-out infinite alternate; will-change:transform; }
 .teacher-intro-shade { position:absolute; inset:0; background:linear-gradient(0deg,rgba(3,8,23,.7) 0%,rgba(3,8,23,.2) 36%,rgba(3,8,23,.03) 74%),linear-gradient(90deg,rgba(3,8,23,.13),transparent 55%,rgba(3,8,23,.12)); pointer-events:none; }
 .teacher-scene-sprite { position:absolute; z-index:2; left:4.5%; bottom:18%; height:82%; max-width:34%; width:auto; object-fit:contain; object-position:center bottom; filter:drop-shadow(0 12px 20px rgba(0,0,0,.45)); opacity:0; transform:translateX(-18px); transition:opacity .65s ease,transform .65s ease; pointer-events:none; }
 .teacher-hero-sprite { position:absolute; z-index:2; right:4.5%; bottom:18%; height:80%; max-width:34%; width:auto; object-fit:contain; object-position:center bottom; transform:scaleX(-1) translateX(-18px); transform-origin:center bottom; filter:drop-shadow(0 12px 20px rgba(0,0,0,.45)); opacity:0; transition:opacity .55s ease,transform .55s ease; pointer-events:none; }
@@ -1465,8 +1465,8 @@ body { background: #07122f; }
 /* v67.24 — seven-question exam loop, desk selection frame and first-person motion */
 .exam-screen { background:#171923; overflow:hidden; }
 .exam-room-background,.exam-desk-background { position:absolute; inset:-2%; background-position:center center; background-size:cover; background-repeat:no-repeat; transform:scale(1.015); transform-origin:50% 48%; will-change:transform; animation:classroom-first-person-sway 24s ease-in-out infinite alternate; }
-.exam-room-background { background-image:url('/assets/classroom-last-exam-background.png'); }
-.exam-desk-background { background-image:url('/assets/exam-desk-background.png'); }
+.exam-room-background { background-image:url('/assets/classroom-last-exam-background.webp'); }
+.exam-desk-background { background-image:url('/assets/exam-desk-background.webp'); }
 .exam-room-background.is-hidden,.exam-desk-background.is-hidden { display:none!important; }
 .exam-room-shade { z-index:1; }
 .exam-teacher-sprite,.exam-hero-sprite { z-index:3; }

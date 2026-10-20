@@ -32,11 +32,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fix Vite executable permissions
-        run: chmod +x node_modules/.bin/vite
-
       - name: Build game
         run: npm run build
+
+      - name: Validate built asset paths
+        run: npm run test:assets
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

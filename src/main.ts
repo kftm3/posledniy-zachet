@@ -1,4 +1,6 @@
 import './style.css';
+import { createAudio } from './media';
+import { gameStorage } from './storage';
 
 type Gender = 'male' | 'female';
 type SelectionState = { gender: Gender; malePreset: number; femalePreset: number };
@@ -23,13 +25,13 @@ const ACHIEVEMENTS = [
 ] as const;
 type AchievementId = typeof ACHIEVEMENTS[number]['id'];
 function readUnlockedAchievements(): string[] {
-  try { const value = JSON.parse(localStorage.getItem(ACHIEVEMENTS_STORAGE_KEY) || '[]'); return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []; } catch { return []; }
+  try { const value = JSON.parse(gameStorage.getItem(ACHIEVEMENTS_STORAGE_KEY) || '[]'); return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []; } catch { return []; }
 }
 function unlockAchievement(id: AchievementId): void {
   const unlocked = readUnlockedAchievements();
   if (unlocked.includes(id)) return;
   unlocked.push(id);
-  localStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(unlocked));
+  gameStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(unlocked));
   const achievement = ACHIEVEMENTS.find(item => item.id === id);
   if (achievement) showAchievementNotification(achievement);
   window.dispatchEvent(new CustomEvent('game:achievement-unlocked', { detail: { id } }));
@@ -42,7 +44,7 @@ let achievementNotificationStylesAdded = false;
 const ACHIEVEMENT_UNLOCK_SOUND = '/audio/achievements/steam-achievement.mp3';
 function playAchievementSound(): void {
   const source = ACHIEVEMENT_UNLOCK_SOUND;
-  const sound = new Audio(source);
+  const sound = createAudio(source);
   sound.volume = 0.82;
   void sound.play().catch((error) => console.warn('Achievement sound could not start:', error));
 }
@@ -85,7 +87,7 @@ function showNextAchievementNotification(): void {
   const iconFrame = document.createElement('div');
   Object.assign(iconFrame.style, { flex:'0 0 72px', width:'72px', height:'72px', display:'grid', placeItems:'center', background:`linear-gradient(145deg, ${accent}20, rgba(0,0,0,.18))`, border:`1px solid ${accent}80`, borderRadius:'3px', overflow:'hidden' });
   const iconImage = document.createElement('img');
-  iconImage.src = `/assets/achievements/icons/achievement-${String(index).padStart(2, '0')}.png`;
+  iconImage.src = `/assets/achievements/icons/achievement-${String(index).padStart(2, '0')}.webp`;
   iconImage.alt = '';
   Object.assign(iconImage.style, { width:'90%', height:'90%', objectFit:'contain', filter:`drop-shadow(0 0 7px ${accent}80)` });
   iconImage.onerror = () => { iconImage.remove(); iconFrame.textContent = achievement.icon; iconFrame.style.fontSize = '36px'; };
@@ -109,8 +111,8 @@ function showNextAchievementNotification(): void {
 function normalizeArchetypeName(name: string): string { return name.normalize('NFC').trim().toLocaleUpperCase('ru-RU'); }
 function recordCompletedArchetype(name: string): void {
   const current = normalizeArchetypeName(name || getArchetype().name);
-  const first = localStorage.getItem(FIRST_COMPLETED_ARCHETYPE_KEY);
-  if (!first) localStorage.setItem(FIRST_COMPLETED_ARCHETYPE_KEY, current);
+  const first = gameStorage.getItem(FIRST_COMPLETED_ARCHETYPE_KEY);
+  if (!first) gameStorage.setItem(FIRST_COMPLETED_ARCHETYPE_KEY, current);
   else if (normalizeArchetypeName(first) !== current) unlockAchievement('director');
   if (current.includes('УНИВЕРСАЛ') || current.includes('UNIVERSAL')) unlockAchievement('jack-of-all-trades');
 }
@@ -120,13 +122,13 @@ function showAchievementsPage(): void {
   // Start with a brief full-screen blackout, then reveal the animated campus and panel.
   // This makes the transition from the final-results screen feel deliberate instead of abrupt.
   Object.assign(overlay.style, { position: 'fixed', inset: '0', zIndex: '2147483646', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '1.5vh 1.5vw', background: '#000', opacity: '1' });
-  const background = document.createElement('img'); background.src = '/assets/achievements/campus-background.png'; background.alt = '';
+  const background = document.createElement('img'); background.src = '/assets/achievements/campus-background.webp'; background.alt = '';
   Object.assign(background.style, { position: 'absolute', inset: '-3%', width: '106%', height: '106%', objectFit: 'cover', animation: 'achievements-campus-drift 30s ease-in-out infinite alternate', willChange: 'transform', opacity: '0', transition: 'opacity .65s ease' });
   const panel = document.createElement('div');
   Object.assign(panel.style, { position: 'relative', width: 'min(96vw, 150vh)', maxHeight: '96vh', aspectRatio: '1536 / 1024', flex: '0 1 auto', transform: 'translateY(0) scale(1)', filter: 'drop-shadow(0 0 0 rgba(0,0,0,0))', transition: 'transform .28s ease, filter .28s ease, opacity .65s ease', opacity: '0', cursor: 'default' });
   panel.addEventListener('pointerenter', () => { panel.style.transform = 'translateY(-8px) scale(1.008)'; panel.style.filter = 'drop-shadow(0 18px 18px rgba(0,0,0,.42))'; });
   panel.addEventListener('pointerleave', () => { panel.style.transform = 'translateY(0) scale(1)'; panel.style.filter = 'drop-shadow(0 0 0 rgba(0,0,0,0))'; });
-  const texture = document.createElement('img'); texture.src = '/assets/achievements/achievement-panel.png'; texture.alt = 'Панель достижений';
+  const texture = document.createElement('img'); texture.src = '/assets/achievements/achievement-panel.webp'; texture.alt = 'Панель достижений';
   Object.assign(texture.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }); panel.appendChild(texture);
   const unlocked = readUnlockedAchievements();
   const style = document.getElementById('achievements-page-styles') || document.createElement('style'); style.id = 'achievements-page-styles';
@@ -170,7 +172,7 @@ function showAchievementsPage(): void {
     // object-fit: contain keeps the complete transparent PNG visible.
     {
       const iconImage = document.createElement('img');
-      iconImage.src = `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.png`;
+      iconImage.src = `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.webp`;
       iconImage.alt = '';
       Object.assign(iconImage.style, { display: 'block', width: '88%', height: '88%', objectFit: 'contain', objectPosition: 'center', flex: '0 0 auto', pointerEvents: 'none' });
       iconSlot.appendChild(iconImage);
@@ -219,37 +221,37 @@ function showAchievementsPage(): void {
 }
 const SECRET_MALE_PRESET = 5; // индекс 5 — Карл Джонсон
 const DEVIL_MALE_PRESET = 6; // индекс 6 — Мик Томпсон
-let secretPresetUnlocked = localStorage.getItem(SECRET_UNLOCK_KEY) === 'true';
-let devilPresetUnlocked = localStorage.getItem(DEVIL_UNLOCK_KEY) === 'true';
+let secretPresetUnlocked = gameStorage.getItem(SECRET_UNLOCK_KEY) === 'true';
+let devilPresetUnlocked = gameStorage.getItem(DEVIL_UNLOCK_KEY) === 'true';
 let cheatBuffer = '';
-const cheatActivationSound = new Audio('/audio/easter-eggs/hesoyam-activation.mp3');
-cheatActivationSound.preload = 'auto';
+const cheatActivationSound = createAudio('/audio/easter-eggs/hesoyam-activation.mp3');
+cheatActivationSound.preload = 'none';
 cheatActivationSound.volume = 0.9;
-const devilActivationSound = new Audio('/audio/easter-eggs/devil-activation.mp3');
-devilActivationSound.preload = 'auto';
+const devilActivationSound = createAudio('/audio/easter-eggs/devil-activation.mp3');
+devilActivationSound.preload = 'none';
 devilActivationSound.volume = 0.9;
-const secretClassroomSound = new Audio('/audio/easter-eggs/ah-shit-here-we-go-again.mp3');
-secretClassroomSound.preload = 'auto';
+const secretClassroomSound = createAudio('/audio/easter-eggs/ah-shit-here-we-go-again.mp3');
+secretClassroomSound.preload = 'none';
 secretClassroomSound.volume = 1;
 
 const defaultState: SelectionState = { gender: 'male', malePreset: 0, femalePreset: 0 };
 
 function loadSelection(): SelectionState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = gameStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...defaultState };
     const parsed = JSON.parse(raw) as Partial<SelectionState>;
     return {
       gender: parsed.gender === 'female' ? 'female' : 'male',
       malePreset: validIndex(parsed.malePreset),
-      femalePreset: validIndex(parsed.femalePreset),
+      femalePreset: validIndex(parsed.femalePreset, 4),
     };
   } catch {
     return { ...defaultState };
   }
 }
-function validIndex(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > DEVIL_MALE_PRESET) return 0;
+function validIndex(value: unknown, maximum = DEVIL_MALE_PRESET): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > maximum) return 0;
   if (value === SECRET_MALE_PRESET && !secretPresetUnlocked) return 0;
   if (value === DEVIL_MALE_PRESET && !devilPresetUnlocked) return 0;
   return value;
@@ -274,7 +276,7 @@ function applyCharacterEmotion(emotion: string = 'normal'): void {
   const key = selectedCharacterKey();
   const sprite = characterSprites[key];
   const folder = key.startsWith('female') ? key.replace('female', 'student_girl') : key === 'male6' ? 'student_male6' : key === 'male7' ? 'student_male7' : key.replace('male', 'student_boy');
-  const emotionSrc = `/assets/characters/${folder}/${activeEmotion}.png`;
+  const emotionSrc = `/assets/characters/${folder}/${activeEmotion}.webp`;
   if (sprite) {
     sprite.src = emotionSrc;
     sprite.alt = `Выбранный персонаж: ${activeEmotion === 'normal' ? 'обычное состояние' : activeEmotion}`;
@@ -284,8 +286,8 @@ function applyCharacterEmotion(emotion: string = 'normal'): void {
     storySprite.onerror = () => {
       storySprite.onerror = null;
       storySprite.src = selection.gender === 'female'
-        ? `/assets/characters/student_girl${selection.femalePreset + 1}/card.png`
-        : selection.malePreset === SECRET_MALE_PRESET ? '/assets/characters/student_male6/card.png' : selection.malePreset === DEVIL_MALE_PRESET ? '/assets/characters/student_male7/card.png' : `/assets/characters/student_boy${selection.malePreset + 1}/card.png`;
+        ? `/assets/characters/student_girl${selection.femalePreset + 1}/card.webp`
+        : selection.malePreset === SECRET_MALE_PRESET ? '/assets/characters/student_male6/card.webp' : selection.malePreset === DEVIL_MALE_PRESET ? '/assets/characters/student_male7/card.webp' : `/assets/characters/student_boy${selection.malePreset + 1}/card.webp`;
       storySprite.classList.add('is-fallback');
     };
     storySprite.classList.remove('is-fallback');
@@ -358,7 +360,6 @@ const archetypeBonus = document.querySelector<HTMLElement>('#archetype-bonus');
 const archetypeEmblem = document.querySelector<HTMLElement>('#archetype-emblem');
 const skillsStatus = document.querySelector<HTMLElement>('#skills-status');
 const skillsWarning = document.querySelector<HTMLElement>('#skills-warning');
-const skillsToast = document.querySelector<HTMLElement>('#skills-toast');
 const toast = document.querySelector<HTMLElement>('#selection-toast');
 const transitionOverlay = document.querySelector<HTMLElement>('#screen-transition');
 const introMusic = document.querySelector<HTMLAudioElement>('#intro-music');
@@ -419,13 +420,17 @@ function showNowPlaying(track: NowPlayingTrack): void {
     };
     coverImage.onerror = () => {
       cover.classList.remove('has-cover');
+      coverImage.removeAttribute('srcset');
       coverImage.removeAttribute('src');
       if (coverMark) coverMark.hidden = false;
       console.warn(`Album cover could not be loaded: ${track.cover}`);
     };
     if (track.cover) {
+      coverImage.sizes = '(max-width: 600px) 58px, 68px';
+      coverImage.srcset = `${track.cover.replace('.webp', '-128.webp')} 128w, ${track.cover.replace('.webp', '-256.webp')} 256w, ${track.cover} 1254w`;
       coverImage.src = track.cover;
     } else {
+      coverImage.removeAttribute('srcset');
       coverImage.removeAttribute('src');
       if (coverMark) coverMark.hidden = false;
     }
@@ -446,20 +451,20 @@ function hideNowPlaying(): void {
   // or intercept clicks while the character-selection menu is on screen.
   card.hidden = true;
 }
-const buttonClickSfx = new Audio('/audio/ui/button-click.wav');
-buttonClickSfx.preload = 'auto';
+const buttonClickSfx = createAudio('/audio/ui/button-click.wav');
+buttonClickSfx.preload = 'none';
 buttonClickSfx.volume = 0.825;
-const skillAdjustSfx = new Audio('/audio/ui/skill-adjust.wav');
-skillAdjustSfx.preload = 'auto';
+const skillAdjustSfx = createAudio('/audio/ui/skill-adjust.wav');
+skillAdjustSfx.preload = 'none';
 skillAdjustSfx.volume = 0.975;
-const classroomDoorSound = new Audio('/audio/ui/minecraft-door-open.mp3');
-classroomDoorSound.preload = 'auto';
+const classroomDoorSound = createAudio('/audio/ui/minecraft-door-open.mp3');
+classroomDoorSound.preload = 'none';
 classroomDoorSound.volume = 0.8;
-const arthurHiSound = new Audio('/audio/ui/roblox-hi-sound.mp3');
-arthurHiSound.preload = 'auto';
+const arthurHiSound = createAudio('/audio/ui/roblox-hi-sound.mp3');
+arthurHiSound.preload = 'none';
 arthurHiSound.volume = 0.8;
-const catMeowSound = new Audio('/audio/ui/meow-1.mp3');
-catMeowSound.preload = 'auto';
+const catMeowSound = createAudio('/audio/ui/meow-1.mp3');
+catMeowSound.preload = 'none';
 catMeowSound.volume = 0.9;
 
 function playUiSound(audio: HTMLAudioElement): void {
@@ -482,25 +487,25 @@ document.addEventListener('click', (event) => {
     playUiSound(buttonClickSfx);
   }
 }, true);
-const archetypeMusic = new Audio();
-archetypeMusic.preload = 'auto';
+const archetypeMusic = createAudio();
+archetypeMusic.preload = 'none';
 archetypeMusic.loop = true;
 archetypeMusic.volume = 0;
 let archetypeMusicFadeTimer: number | undefined;
 let corridorMusicStarted = false;
-const classroomMusic = new Audio('/audio/classroom/C418-Aria_Math.mp3');
-const endingMusic = new Audio('/audio/endings/gta-iv-ending.mp3');
-endingMusic.preload = 'auto';
+const classroomMusic = createAudio('/audio/classroom/C418-Aria_Math.mp3');
+const endingMusic = createAudio('/audio/endings/gta-iv-ending.mp3');
+endingMusic.preload = 'none';
 endingMusic.loop = true;
 endingMusic.volume = 0.72;
-const excellentEndingDoorSound = new Audio('/audio/endings/excellent-ending-door.mp3');
-excellentEndingDoorSound.preload = 'auto';
+const excellentEndingDoorSound = createAudio('/audio/ui/minecraft-door-open.mp3');
+excellentEndingDoorSound.preload = 'none';
 excellentEndingDoorSound.volume = 0.8;
-const excellentEndingPhoneSound = new Audio('/audio/endings/excellent-ending-phone.mp3');
-excellentEndingPhoneSound.preload = 'auto';
+const excellentEndingPhoneSound = createAudio('/audio/endings/excellent-ending-phone.mp3');
+excellentEndingPhoneSound.preload = 'none';
 excellentEndingPhoneSound.volume = 0.9;
-const braveFriendPhoneSound = new Audio('/audio/endings/brave-friend-phone.mp3');
-braveFriendPhoneSound.preload = 'auto';
+const braveFriendPhoneSound = createAudio('/audio/endings/excellent-ending-phone.mp3');
+braveFriendPhoneSound.preload = 'none';
 braveFriendPhoneSound.volume = 0.9;
 function playExcellentEndingSound(sound: HTMLAudioElement): void {
   try {
@@ -510,7 +515,7 @@ function playExcellentEndingSound(sound: HTMLAudioElement): void {
     if (playback && typeof playback.catch === 'function') playback.catch(() => { /* SFX must never interrupt the ending */ });
   } catch { /* Ignore unavailable audio devices or browser restrictions */ }
 }
-classroomMusic.preload = 'auto';
+classroomMusic.preload = 'none';
 classroomMusic.loop = true;
 classroomMusic.volume = 0;
 let corridorFadeTimer: number | undefined;
@@ -586,7 +591,7 @@ const skillKeys: SkillKey[] = ['knowledge','logic','charisma','cunning','confide
 let skills: Record<SkillKey,number> = loadSkills();
 function loadSkills(): Record<SkillKey,number> {
   const empty: Record<SkillKey,number> = {knowledge:0,logic:0,charisma:0,cunning:0,confidence:0,attention:0};
-  try { const raw=localStorage.getItem(SKILLS_KEY); if(raw){ const parsed=JSON.parse(raw); const out={...empty}; skillKeys.forEach(k=>out[k]=Math.max(0,Math.min(4,Number(parsed[k])||0))); if(Object.values(out).reduce((a,b)=>a+b,0)<=10) return out; } } catch {}
+  try { const raw=gameStorage.getItem(SKILLS_KEY); if(raw){ const parsed=JSON.parse(raw); const out={...empty}; skillKeys.forEach(k=>out[k]=Math.max(0,Math.min(4,Number(parsed[k])||0))); if(Object.values(out).reduce((a,b)=>a+b,0)<=10) return out; } } catch {}
   return empty;
 }
 function totalSkills(): number { return skillKeys.reduce((sum,key)=>sum+skills[key],0); }
@@ -614,19 +619,19 @@ function calculateArchetype(): ArchetypeInfo {
 function renderSkills(): void {
  const remaining=10-totalSkills(); if(pointsLeft) pointsLeft.textContent=String(remaining);
  document.querySelectorAll<HTMLElement>('.skill-card').forEach(card=>{const key=card.dataset.skill as SkillKey;const value=skills[key]||0;const meter=card.querySelector<HTMLElement>('.skill-meter');if(meter)meter.innerHTML=Array.from({length:4},(_,i)=>`<i class="${i<value?'filled':''}" aria-hidden="true"></i>`).join('');const count=card.querySelector<HTMLElement>('.skill-actions strong');if(count)count.textContent=String(value);const minus=card.querySelector<HTMLButtonElement>('[data-delta="-1"]');const plus=card.querySelector<HTMLButtonElement>('[data-delta="1"]');if(minus)minus.disabled=value<=0;if(plus)plus.disabled=value>=4||remaining<=0;});
- const a=getArchetype();if(archetypeName)archetypeName.textContent=a.name;if(archetypeDescription)archetypeDescription.textContent=a.description;if(archetypeBonus)archetypeBonus.textContent=a.bonus;if(archetypeEmblem)archetypeEmblem.textContent=a.icon;if(skillsStatus)skillsStatus.textContent=remaining===0?'Все очки распределены!':`Осталось распределить: ${remaining}`;if(skillsWarning)skillsWarning.textContent=remaining===0?'✓  Все очки распределены — можно продолжать':'ⓘ  Все очки нужно распределить до подтверждения';if(skillsContinue)skillsContinue.disabled=remaining!==0;localStorage.setItem(SKILLS_KEY,JSON.stringify(skills));
+ const a=getArchetype();if(archetypeName)archetypeName.textContent=a.name;if(archetypeDescription)archetypeDescription.textContent=a.description;if(archetypeBonus)archetypeBonus.textContent=a.bonus;if(archetypeEmblem)archetypeEmblem.textContent=a.icon;if(skillsStatus)skillsStatus.textContent=remaining===0?'Все очки распределены!':`Осталось распределить: ${remaining}`;if(skillsWarning)skillsWarning.textContent=remaining===0?'✓  Все очки распределены — можно продолжать':'ⓘ  Все очки нужно распределить до подтверждения';if(skillsContinue)skillsContinue.disabled=remaining!==0;gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills));
 }
 
 
 function renderTicket(): void {
   try {
-    const player = JSON.parse(localStorage.getItem('last-exam-player-data') || '{}');
+    const player = JSON.parse(gameStorage.getItem('last-exam-player-data') || '{}');
     const set = (id: string, value: string) => { const el=document.getElementById(id); if(el) el.textContent=value; };
     set('ticket-surname', player.surname || 'Фамилия'); set('ticket-name', player.givenName || 'Имя'); set('ticket-group', player.group || 'Группа');
     const archetype=getArchetype(); set('ticket-archetype-name', archetype.name); set('ticket-archetype-description', archetype.description);
     set('ticket-archetype-icon', '');
     const photo=document.getElementById('ticket-photo') as HTMLImageElement | null;
-    if(photo){ photo.src = selection.gender==='female' ? `/assets/characters/student_girl${selection.femalePreset+1}/card.png` : (selection.malePreset === SECRET_MALE_PRESET ? '/assets/characters/student_male6/card.png' : selection.malePreset === DEVIL_MALE_PRESET ? '/assets/characters/student_male7/card.png' : `/assets/characters/student_boy${selection.malePreset+1}/card.png`); photo.onerror=()=>{photo.onerror=null;photo.src='/assets/character_selector_male.png';}; }
+    if(photo){ photo.src = selection.gender==='female' ? `/assets/characters/student_girl${selection.femalePreset+1}/card.webp` : (selection.malePreset === SECRET_MALE_PRESET ? '/assets/characters/student_male6/card.webp' : selection.malePreset === DEVIL_MALE_PRESET ? '/assets/characters/student_male7/card.webp' : `/assets/characters/student_boy${selection.malePreset+1}/card.webp`); photo.onerror=()=>{photo.onerror=null;photo.src='/assets/character_selector_male.webp';}; }
   } catch { /* retain the ticket's safe placeholder labels */ }
 }
 
@@ -676,15 +681,15 @@ function startArchetypeMusic(): void {
   archetypeMusic.src = track;
   archetypeMusic.currentTime = 0;
   const nowPlayingByPath: Record<string, NowPlayingTrack> = {
-    '/audio/archetypes/archetype-excellent.mp3': { title: 'RV 269 «Весна»: I. Allegro', artist: 'Антонио Вивальди', spotifyQuery: 'Antonio Vivaldi RV 269 Spring I Allegro', yandexUrl: 'https://music.yandex.ru/album/10846125/track/66491628?ref_id=6255D249-7199-4C4B-96FA-D5D8C09E5DE7&utm_medium=share_link_tg&utm_source=mobile_ios', mood: 'yellow', cover: '/assets/music-covers/vivaldi.png' },
-    '/audio/archetypes/archetype-trickster.mp3': { title: 'Vermilion', artist: 'Slipknot', spotifyQuery: 'Slipknot Vermilion', mood: 'red', cover: '/assets/music-covers/vermilion.png' },
-    '/audio/archetypes/archetype-gosling.mp3': { title: 'Nightcall', artist: 'Kavinsky', spotifyQuery: 'Kavinsky Nightcall', mood: 'blue', cover: '/assets/music-covers/nightcall.png' },
-    '/audio/archetypes/archetype-analyst.mp3': { title: 'Take A Look Around', artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Take A Look Around', mood: 'red', cover: '/assets/music-covers/take-a-look-around.png' },
-    '/audio/archetypes/archetype-bold.mp3': { title: "Rollin'", artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Rollin', mood: 'red', cover: '/assets/music-covers/rollin.png' },
-    '/audio/archetypes/archetype-observer.mp3': { title: 'Спокойная ночь', artist: 'Кино', spotifyQuery: 'Кино Спокойная ночь', mood: 'red', cover: '/assets/music-covers/spokoynaya-noch.png' },
-    '/audio/archetypes/archetype-universal.mp3': { title: 'Sometimes', artist: 'Mattyeux', spotifyQuery: 'Mattyeux Sometimes', mood: 'blue', cover: '/assets/music-covers/sometimes.png' },
-    '/audio/easter-eggs/devil-corridor.mp3': { title: 'Eyeless', artist: 'Slipknot', spotifyQuery: 'Slipknot Eyeless', mood: 'red', cover: '/assets/music-covers/eyeless.png' },
-    '/audio/easter-eggs/welcome-to-san-andreas.mp3': { title: 'Welcome to San Andreas', artist: 'Young Maylay', spotifyQuery: 'Young Maylay Welcome to San Andreas', mood: 'green', cover: '/assets/music-covers/hesoyam.png' }
+    '/audio/archetypes/archetype-excellent.mp3': { title: 'RV 269 «Весна»: I. Allegro', artist: 'Антонио Вивальди', spotifyQuery: 'Antonio Vivaldi RV 269 Spring I Allegro', yandexUrl: 'https://music.yandex.ru/album/10846125/track/66491628?ref_id=6255D249-7199-4C4B-96FA-D5D8C09E5DE7&utm_medium=share_link_tg&utm_source=mobile_ios', mood: 'yellow', cover: '/assets/music-covers/vivaldi.webp' },
+    '/audio/archetypes/archetype-trickster.mp3': { title: 'Vermilion', artist: 'Slipknot', spotifyQuery: 'Slipknot Vermilion', mood: 'red', cover: '/assets/music-covers/vermilion.webp' },
+    '/audio/archetypes/archetype-gosling.mp3': { title: 'Nightcall', artist: 'Kavinsky', spotifyQuery: 'Kavinsky Nightcall', mood: 'blue', cover: '/assets/music-covers/nightcall.webp' },
+    '/audio/archetypes/archetype-analyst.mp3': { title: 'Take A Look Around', artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Take A Look Around', mood: 'red', cover: '/assets/music-covers/take-a-look-around.webp' },
+    '/audio/archetypes/archetype-bold.mp3': { title: "Rollin'", artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Rollin', mood: 'red', cover: '/assets/music-covers/rollin.webp' },
+    '/audio/archetypes/archetype-observer.mp3': { title: 'Спокойная ночь', artist: 'Кино', spotifyQuery: 'Кино Спокойная ночь', mood: 'red', cover: '/assets/music-covers/spokoynaya-noch.webp' },
+    '/audio/archetypes/archetype-universal.mp3': { title: 'Sometimes', artist: 'Mattyeux', spotifyQuery: 'Mattyeux Sometimes', mood: 'blue', cover: '/assets/music-covers/sometimes.webp' },
+    '/audio/easter-eggs/devil-corridor.mp3': { title: 'Eyeless', artist: 'Slipknot', spotifyQuery: 'Slipknot Eyeless', mood: 'red', cover: '/assets/music-covers/eyeless.webp' },
+    '/audio/easter-eggs/welcome-to-san-andreas.mp3': { title: 'Welcome to San Andreas', artist: 'Young Maylay', spotifyQuery: 'Young Maylay Welcome to San Andreas', mood: 'green', cover: '/assets/music-covers/hesoyam.webp' }
   };
   const currentTrackInfo = nowPlayingByPath[track] ?? { title: 'Corridor Theme', artist: 'Последний зачёт • OST', spotifyQuery: 'video game corridor soundtrack' };
   archetypeMusic.loop = true;
@@ -726,19 +731,6 @@ function startArchetypeMusic(): void {
 window.addEventListener('game:first-scene-start', () => {
   fadeOutIntroMusic();
 });
-function stopCorridorAudio(): void {
-  if (archetypeMusicFadeTimer !== undefined) window.clearInterval(archetypeMusicFadeTimer);
-  archetypeMusicFadeTimer = undefined;
-  archetypeMusic.pause();
-  archetypeMusic.currentTime = 0;
-  archetypeMusic.volume = 0.60;
-  corridorMusicStarted = false;
-  if (corridorAmbience) {
-    corridorAmbience.pause();
-    corridorAmbience.currentTime = 0;
-    corridorAmbience.volume = 0.90;
-  }
-}
 
 window.addEventListener('game:scene-change', (event) => {
   const detail = (event as CustomEvent<{ scene?: string }>).detail;
@@ -766,7 +758,7 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 function saveSelection(): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
+  gameStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
 }
 function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket' | 'corridor' | 'classroom-intro' | 'classroom-gallery' | 'classroom-classmates' | 'teacher-intro' | 'exam'): void {
   const showStart = screen === 'start';
@@ -944,7 +936,7 @@ document.querySelectorAll<HTMLElement>('.skill-card').forEach(card=>{
  const key=card.dataset.skill as SkillKey;
  card.querySelectorAll<HTMLButtonElement>('[data-delta]').forEach(button=>button.addEventListener('click',()=>{const delta=Number(button.dataset.delta)||0;if(delta>0&&(skills[key]>=4||totalSkills()>=10))return;skills[key]=Math.max(0,Math.min(4,skills[key]+delta));renderSkills();}));
 });
-skillsContinue?.addEventListener('click',()=>{if(skillsContinue.disabled)return;localStorage.setItem(SKILLS_KEY,JSON.stringify(skills));window.dispatchEvent(new CustomEvent('game:skills-confirmed',{detail:{...skills,archetype:getArchetype().name}}));if(isTransitioning)return;isTransitioning=true;transitionOverlay?.classList.add('is-active');void(async()=>{await wait(500);showScreen('ticket');ticketScreen?.classList.add('screen-entering');requestAnimationFrame(()=>{ticketScreen?.classList.remove('screen-entering');transitionOverlay?.classList.remove('is-active');});await wait(500);isTransitioning=false;})();});
+skillsContinue?.addEventListener('click',()=>{if(skillsContinue.disabled)return;gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills));window.dispatchEvent(new CustomEvent('game:skills-confirmed',{detail:{...skills,archetype:getArchetype().name}}));if(isTransitioning)return;isTransitioning=true;transitionOverlay?.classList.add('is-active');void(async()=>{await wait(500);showScreen('ticket');ticketScreen?.classList.add('screen-entering');requestAnimationFrame(()=>{ticketScreen?.classList.remove('screen-entering');transitionOverlay?.classList.remove('is-active');});await wait(500);isTransitioning=false;})();});
 
 playerForm?.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -956,7 +948,7 @@ playerForm?.addEventListener('submit', (event) => {
     group: String(formData.get('group') ?? '').trim(),
   };
   if (!player.surname || !player.givenName || !player.group) return;
-  localStorage.setItem('last-exam-player-data', JSON.stringify(player));
+  gameStorage.setItem('last-exam-player-data', JSON.stringify(player));
   window.dispatchEvent(new CustomEvent('game:player-data-entered', { detail: player }));
   if (inputToast) { inputToast.textContent = 'Данные сохранены!'; inputToast.classList.add('is-visible'); window.setTimeout(() => inputToast.classList.remove('is-visible'), 1200); }
   if (!isTransitioning) { isTransitioning=true; transitionOverlay?.classList.add('is-active'); void (async()=>{await wait(500);showScreen('skills');skillsScreen?.classList.add('screen-entering');requestAnimationFrame(()=>{skillsScreen?.classList.remove('screen-entering');transitionOverlay?.classList.remove('is-active');});await wait(500);isTransitioning=false;})(); }
@@ -972,7 +964,7 @@ document.addEventListener('keydown', (event) => {
   if (code === 'hesoyam') {
     if (secretPresetUnlocked) {
       secretPresetUnlocked = false;
-      localStorage.setItem(SECRET_UNLOCK_KEY, 'false');
+      gameStorage.setItem(SECRET_UNLOCK_KEY, 'false');
       if (selection.gender === 'male' && selection.malePreset === SECRET_MALE_PRESET) {
         selection.malePreset = 2;
         saveSelection();
@@ -982,14 +974,14 @@ document.addEventListener('keydown', (event) => {
     } else {
       secretPresetUnlocked = true;
       unlockAchievement('hesoyam');
-      localStorage.setItem(SECRET_UNLOCK_KEY, 'true');
+      gameStorage.setItem(SECRET_UNLOCK_KEY, 'true');
       showToast('HESOYAM активирован! Си-Джей разблокирован.');
     }
     playUiSound(cheatActivationSound);
   } else {
     if (devilPresetUnlocked) {
       devilPresetUnlocked = false;
-      localStorage.setItem(DEVIL_UNLOCK_KEY, 'false');
+      gameStorage.setItem(DEVIL_UNLOCK_KEY, 'false');
       if (selection.gender === 'male' && selection.malePreset === DEVIL_MALE_PRESET) {
         selection.malePreset = 1;
         saveSelection();
@@ -998,7 +990,7 @@ document.addEventListener('keydown', (event) => {
       showToast('DEVIL отключён! Мик Томпсон скрыт.');
     } else {
       devilPresetUnlocked = true;
-      localStorage.setItem(DEVIL_UNLOCK_KEY, 'true');
+      gameStorage.setItem(DEVIL_UNLOCK_KEY, 'true');
       showToast('DEVIL активирован! Мик Томпсон разблокирован.');
     }
     playUiSound(devilActivationSound);
@@ -1090,12 +1082,12 @@ function playIntroVideoBeforeCorridor(): void {
 
   // The disclaimer has no controls and automatically advances to the intro after 4 seconds.
   window.setTimeout(() => {
+    if (introVideoFinished || !introVideoInProgress) return;
     disclaimer.classList.add('is-hidden');
     disclaimer.setAttribute('aria-hidden', 'true');
     overlay.classList.remove('is-hidden');
     overlay.setAttribute('aria-hidden', 'false');
     video.currentTime = 0;
-    video.muted = false;
     video.muted = false;
     const playback = video.play();
     if (playback && typeof playback.catch === 'function') {
@@ -1152,7 +1144,7 @@ function showCorridorFriend(visible: boolean, emotion: CharacterEmotion = 'norma
   if (visible) {
     const availableEmotions: CharacterEmotion[] = ['normal', 'confident', 'smile', 'thinking', 'worried'];
     const safeEmotion = availableEmotions.includes(emotion) ? emotion : 'normal';
-    const nextSrc = `/assets/characters/${corridorFriend.folder}/${safeEmotion}.png`;
+    const nextSrc = `/assets/characters/${corridorFriend.folder}/${safeEmotion}.webp`;
     if (sprite.getAttribute('src') !== nextSrc) sprite.src = nextSrc;
     sprite.alt = `${corridorFriend.gender === 'female' ? 'Подруга' : 'Друг'} персонажа: ${safeEmotion === 'normal' ? 'обычное выражение' : safeEmotion}`;
     sprite.dataset.emotion = safeEmotion;
@@ -1161,13 +1153,13 @@ function showCorridorFriend(visible: boolean, emotion: CharacterEmotion = 'norma
 }
 function corridorPlayerName(): string {
   try {
-    const p = JSON.parse(localStorage.getItem('last-exam-player-data') || '{}');
+    const p = JSON.parse(gameStorage.getItem('last-exam-player-data') || '{}');
     return p.givenName || p.name || p.surname || 'ИГРОК';
   } catch { return 'ИГРОК'; }
 }
 function corridorPlayerSurname(): string {
   try {
-    const p = JSON.parse(localStorage.getItem('last-exam-player-data') || '{}');
+    const p = JSON.parse(gameStorage.getItem('last-exam-player-data') || '{}');
     return String(p.surname || 'Студент').trim();
   } catch { return 'Студент'; }
 }
@@ -1688,12 +1680,12 @@ let teacherBeatIndex = 0;
 let teacherChoiceMade = false;
 let teacherSceneBusy = false;
 const teacherEmotionFiles: Record<string, string> = {
-  friendly: '/assets/characters/teacher/friendly.png',
-  slightlyTired: '/assets/characters/teacher/slightly-tired.png',
-  tired: '/assets/characters/teacher/tired.png',
-  irritated: '/assets/characters/teacher/irritated.png',
-  angry: '/assets/characters/teacher/angry.png',
-  critical: '/assets/characters/teacher/critical.png'
+  friendly: '/assets/characters/teacher/friendly.webp',
+  slightlyTired: '/assets/characters/teacher/slightly-tired.webp',
+  tired: '/assets/characters/teacher/tired.webp',
+  irritated: '/assets/characters/teacher/irritated.webp',
+  angry: '/assets/characters/teacher/angry.webp',
+  critical: '/assets/characters/teacher/critical.webp'
 };
 function teacherEmotionForFatigue(value: number): keyof typeof teacherEmotionFiles {
   if (value >= 96) return 'critical';
@@ -1765,7 +1757,7 @@ function buildTeacherChoices(): TeacherChoice[] {
 function teacherPlayerSpriteSrc(emotion: CharacterEmotion): string {
   const key = selectedCharacterKey();
   const folder = key.startsWith('female') ? key.replace('female','student_girl') : key === 'male6' ? 'student_male6' : key === 'male7' ? 'student_male7' : key.replace('male','student_boy');
-  return `/assets/characters/${folder}/${emotion}.png`;
+  return `/assets/characters/${folder}/${emotion}.webp`;
 }
 function renderTeacherBeat(): void {
   const speaker = document.getElementById('teacher-speaker');
@@ -1935,7 +1927,6 @@ let examQuestionIndex = 0;
 let examCorrectCount = 0;
 let examHintsUsed = 0;
 let examCheatAttempts = 0;
-let examRudeUsed = false;
 let examPhase: 'question'|'thought'|'paper'|'hint'|'feedback'|'finished' = 'question';
 let examFeedbackLines: Array<{speaker:string;text:string;emotion:string}> = [];
 let examFeedbackIndex = 0;
@@ -1949,14 +1940,11 @@ function shuffledExamAnswerOrder(questionIndex:number): number[] {
 }
 let examQuestionRude = false;
 let examStarted = false;
-function examPlayerData(): any {
- try { return JSON.parse(localStorage.getItem('last-exam-player-data') || '{}'); } catch { return {}; }
-}
 function examArchetypeKey(): string { return getArchetype().name.toLocaleUpperCase('ru-RU'); }
 function examThought(): string { return examArchetypeThoughts[examArchetypeKey()] || examArchetypeThoughts['УНИВЕРСАЛ']; }
 function examProfileSkill(): SkillKey {
  const a=examArchetypeKey();
- if(a.includes('ХИТР')) return 'cunning';
+ if(a.includes('ТРИКСТЕР')) return 'cunning';
  if(a.includes('РАЙАН')||a.includes('МЕГАН')) return 'charisma';
  if(a.includes('АНАЛИТИК')) return 'logic';
  if(a.includes('СМЕЛ')) return 'confidence';
@@ -1972,12 +1960,12 @@ const examSkillFallback: Record<SkillKey,SkillKey[]> = {
  attention:['logic','knowledge','cunning','confidence','charisma']
 };
 function examChangeKnowledge(delta:number): string {
- if(delta<0) { skills.knowledge=Math.max(0,skills.knowledge-1); localStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return skills.knowledge===0?'Знания −1 (минимум 0)':'Знания −1'; }
- if(skills.knowledge<4) { skills.knowledge++; localStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return 'Знания +1'; }
+ if(delta<0) { skills.knowledge=Math.max(0,skills.knowledge-1); gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return skills.knowledge===0?'Знания −1 (минимум 0)':'Знания −1'; }
+ if(skills.knowledge<4) { skills.knowledge++; gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return 'Знания +1'; }
  const profile=examProfileSkill();
- if(skills[profile]<4) { skills[profile]++; localStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return `Знания на максимуме → ${({logic:'Логика',attention:'Внимательность',confidence:'Уверенность',charisma:'Харизма',cunning:'Хитрость',knowledge:'Знания'} as Record<SkillKey,string>)[profile]} +1`; }
+ if(skills[profile]<4) { skills[profile]++; gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return `Знания на максимуме → ${({logic:'Логика',attention:'Внимательность',confidence:'Уверенность',charisma:'Харизма',cunning:'Хитрость',knowledge:'Знания'} as Record<SkillKey,string>)[profile]} +1`; }
  const fallback=examSkillFallback[profile].find(k=>skills[k]<4);
- if(fallback) { skills[fallback]++; localStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return `Знания на максимуме → ${({logic:'Логика',attention:'Внимательность',confidence:'Уверенность',charisma:'Харизма',cunning:'Хитрость',knowledge:'Знания'} as Record<SkillKey,string>)[fallback]} +1`; }
+ if(fallback) { skills[fallback]++; gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); return `Знания на максимуме → ${({logic:'Логика',attention:'Внимательность',confidence:'Уверенность',charisma:'Харизма',cunning:'Хитрость',knowledge:'Знания'} as Record<SkillKey,string>)[fallback]} +1`; }
  return 'Все навыки уже на максимуме.';
 }
 function examFatigue(delta:number): void { teacherFatigue=Math.max(0,Math.min(100,teacherFatigue+delta)); if(teacherFatigue>=100) unlockAchievement('teacher-patience'); updateExamTeacherSprite(); window.dispatchEvent(new CustomEvent('game:teacher-state-updated',{detail:{fatigue:teacherFatigue,relationship:teacherRelationship,emotion:teacherEmotionForFatigue(teacherFatigue)}})); }
@@ -1988,12 +1976,12 @@ function updateExamTeacherSprite(): void {
 function updateExamHeroSprite(emotion:string): void {
  const hero=document.getElementById('exam-hero-sprite') as HTMLImageElement|null;
  if(!hero) return;
- const valid=['normal','smile','worried','angry','thinking','confident'];
- const e=valid.includes(emotion)?emotion:(emotion==='surprised'?'worried':'normal');
+ const valid=['normal','smile','worried','thinking','confident'];
+ const e=valid.includes(emotion)?emotion:((emotion==='surprised'||emotion==='angry')?'worried':'normal');
  hero.src=teacherPlayerSpriteSrc(e as CharacterEmotion);
  hero.alt=selection.gender==='female'?'Главная героиня':'Главный герой';
 }
-function examShowRoom(speaker:string,text:string,emotion='normal',heroEmotion?:string,progressText?:string): void {
+function examShowRoom(speaker:string,text:string,_emotion='normal',heroEmotion?:string,progressText?:string): void {
  const screen=document.getElementById('exam-screen');
  screen?.classList.remove('exam-paper-open');
  document.getElementById('exam-room-background')?.classList.remove('is-hidden');
@@ -2012,7 +2000,7 @@ function examShowRoom(speaker:string,text:string,emotion='normal',heroEmotion?:s
 }
 function beginExam(): void {
  if(examStarted) return;
- examStarted=true; examQuestionIndex=0; examCorrectCount=0; examHintsUsed=0; examCheatAttempts=0; examRudeUsed=false; examQuestionCheatStart=0; examQuestionRude=false; examAnswerOrders=[]; examPhase='question'; examFeedbackIndex=0; cameoAfterQuestion=2+Math.floor(Math.random()*5); cameoBeatIndex=0; cameoActive=false; cameoPlayed=false;
+ examStarted=true; examQuestionIndex=0; examCorrectCount=0; examHintsUsed=0; examCheatAttempts=0; examQuestionCheatStart=0; examQuestionRude=false; examAnswerOrders=[]; examPhase='question'; examFeedbackIndex=0; cameoAfterQuestion=2+Math.floor(Math.random()*5); cameoBeatIndex=0; cameoActive=false; cameoPlayed=false;
  // Keep the classroom soundtrack running from the previous scene.
  showScreen('exam');
  const screen=document.getElementById('exam-screen'); screen?.classList.remove('exam-entered');
@@ -2086,14 +2074,14 @@ function tryExamCheat(): void {
 }
 function performExamRudeness(): void {
  if(examPhase!=='paper'||examQuestionRude) return;
- examQuestionRude=true; examRudeUsed=true; examFatigue(15); teacherRelationship=Math.max(0,teacherRelationship-5);
+ examQuestionRude=true; examFatigue(15); teacherRelationship=Math.max(0,teacherRelationship-5);
  const status=document.getElementById('exam-action-status'); if(status) status.textContent='«Можно было бы ответить, если бы вопрос был нормальный».';
  const rude=document.getElementById('exam-rude-button') as HTMLButtonElement|null; if(rude) rude.disabled=true;
 }
 function archetypeAnswerReaction(correct:boolean,bad:boolean): string {
  const a=examArchetypeKey(), female=selection.gender==='female';
  if(bad) {
-  if(a.includes('ХИТР')) return 'Ладно, сделаем вид, что я этого не говорил.';
+  if(a.includes('ТРИКСТЕР')) return 'Ладно, сделаем вид, что я этого не говорил.';
   if(a.includes('РАЙАН')||a.includes('МЕГАН')) return female?'Этого ответа не было. Начнём заново с красивого лица.':'Этого ответа не было. Начнём заново с уверенного вида.';
   if(a.includes('АНАЛИТИК')) return 'Гипотеза оказалась… крайне смелой.';
   if(a.includes('СМЕЛ')) return female?'Сказала — значит, сказала. Но это было зря.':'Сказал — значит, сказал. Но это было зря.';
@@ -2102,7 +2090,7 @@ function archetypeAnswerReaction(correct:boolean,bad:boolean): string {
   return 'Ладно, сделаем вид, что этого не было.';
  }
  if(correct) {
-  if(a.includes('ХИТР')) return 'Отлично. И никаких лишних подозрений.';
+  if(a.includes('ТРИКСТЕР')) return 'Отлично. И никаких лишних подозрений.';
   if(a.includes('РАЙАН')||a.includes('МЕГАН')) return 'Спокойствие и уверенность — половина успеха.';
   if(a.includes('АНАЛИТИК')) return 'Данные подтверждают гипотезу.';
   if(a.includes('СМЕЛ')) return 'Есть! Дальше.';
@@ -2110,7 +2098,7 @@ function archetypeAnswerReaction(correct:boolean,bad:boolean): string {
   if(a.includes('ОТЛИЧ')) return 'Хорошо. Факты на месте.';
   return female?'Хорошо, один ответ есть.':'Хорошо, один ответ есть.';
  }
- if(a.includes('ХИТР')) return 'План был хороший. Ответ — не очень.';
+ if(a.includes('ТРИКСТЕР')) return 'План был хороший. Ответ — не очень.';
  if(a.includes('РАЙАН')||a.includes('МЕГАН')) return 'Даже уверенный тон не спасает от ошибки.';
  if(a.includes('АНАЛИТИК')) return 'Похоже, в рассуждении была ошибка.';
  if(a.includes('СМЕЛ')) return female?'Решилась быстро, но не угадала.':'Решился быстро, но не угадал.';
@@ -2148,14 +2136,14 @@ function showExamFeedbackLine(): void {
 }
 type CameoBeat = { image: string; speaker: string; text: string; alt: string };
 const friendlyCameoBeats: CameoBeat[] = [
- { image: '/assets/cameo/kftm3-entry.png', speaker: 'KFTM3', text: 'Здравствуйте! Как у вас дела?', alt: 'KFTM3 и друг входят в аудиторию' },
- { image: '/assets/cameo/kftm3-friendly-reply.png', speaker: 'ПРЕПОД', text: 'Здравствуйте, ребята! Зайдите лучше чуть позже, сейчас я занята.', alt: 'Преподавательница занята бумагами за столом' },
- { image: '/assets/cameo/kftm3-goodbye.png', speaker: 'KFTM3', text: 'Хорошо, не будем мешать, всего хорошего!', alt: 'KFTM3 и друг вежливо прощаются' }
+ { image: '/assets/cameo/kftm3-entry.webp', speaker: 'KFTM3', text: 'Здравствуйте! Как у вас дела?', alt: 'KFTM3 и друг входят в аудиторию' },
+ { image: '/assets/cameo/kftm3-friendly-reply.webp', speaker: 'ПРЕПОД', text: 'Здравствуйте, ребята! Зайдите лучше чуть позже, сейчас я занята.', alt: 'Преподавательница занята бумагами за столом' },
+ { image: '/assets/cameo/kftm3-goodbye.webp', speaker: 'KFTM3', text: 'Хорошо, не будем мешать, всего хорошего!', alt: 'KFTM3 и друг вежливо прощаются' }
 ];
 const angryCameoBeats: CameoBeat[] = [
- { image: '/assets/cameo/kftm3-entry.png', speaker: 'KFTM3', text: 'Здравствуйте! Как у вас дела?', alt: 'KFTM3 и друг входят в аудиторию' },
- { image: '/assets/cameo/kftm3-angry-teacher.png', speaker: 'ПРЕПОД', text: 'ВЫШЛИ ОТСЮДА, НЕ БЕСИТЕ МЕНЯ!!!', alt: 'Разгневанная преподавательница кричит и указывает на выход' },
- { image: '/assets/cameo/kftm3-angry-exit.png', speaker: 'KFTM3', text: 'Ой, что-то она не в настроении, Денчик, валим отсюда.', alt: 'KFTM3 и Денчик испуганно отходят от двери аудитории' }
+ { image: '/assets/cameo/kftm3-entry.webp', speaker: 'KFTM3', text: 'Здравствуйте! Как у вас дела?', alt: 'KFTM3 и друг входят в аудиторию' },
+ { image: '/assets/cameo/kftm3-angry-teacher.webp', speaker: 'ПРЕПОД', text: 'ВЫШЛИ ОТСЮДА, НЕ БЕСИТЕ МЕНЯ!!!', alt: 'Разгневанная преподавательница кричит и указывает на выход' },
+ { image: '/assets/cameo/kftm3-angry-exit.webp', speaker: 'KFTM3', text: 'Ой, что-то она не в настроении, Денчик, валим отсюда.', alt: 'KFTM3 и Денчик испуганно отходят от двери аудитории' }
 ];
 let activeCameoBeats: CameoBeat[] = friendlyCameoBeats;
 let cameoAfterQuestion = 0;
@@ -2164,12 +2152,12 @@ let cameoActive = false;
 let cameoPlayed = false;
 
 // Cameo music temporarily replaces the classroom soundtrack; its position is restored afterward.
-const friendlyCameoMusic = new Audio('/audio/cameo/elevator-music-background.mp3');
-friendlyCameoMusic.preload = 'auto';
+const friendlyCameoMusic = createAudio('/audio/cameo/elevator-music-background.mp3');
+friendlyCameoMusic.preload = 'none';
 friendlyCameoMusic.loop = true;
 friendlyCameoMusic.volume = 0.82;
-const angryCameoMusic = new Audio('/audio/cameo/fnaf-1-music-box.mp3');
-angryCameoMusic.preload = 'auto';
+const angryCameoMusic = createAudio('/audio/cameo/fnaf-1-music-box.mp3');
+angryCameoMusic.preload = 'none';
 angryCameoMusic.loop = true;
 angryCameoMusic.volume = 0.88;
 let activeCameoMusic: HTMLAudioElement | null = null;
@@ -2323,7 +2311,7 @@ let excellentEndingIndex = 0;
 let excellentEndingTransition = false;
 function endingPlayerName(): string {
   try {
-    const player = JSON.parse(localStorage.getItem('last-exam-player-data') || '{}');
+    const player = JSON.parse(gameStorage.getItem('last-exam-player-data') || '{}');
     return String(player.givenName || player.name || 'Отличник').trim() || 'Отличник';
   } catch { return 'Отличник'; }
 }
@@ -2337,14 +2325,14 @@ function buildExcellentEndingBeats(correctAnswers: number, endingType: 'brave' |
   if (endingType === 'observer') return buildObserverEndingBeats(correctAnswers, playerName, isFemale);
   if (endingType === 'universal') return buildUniversalEndingBeats(correctAnswers, playerName, isFemale);
   const studyImage = isFemale
-    ? '/assets/endings/excellent/female-frame-1.png'
-    : '/assets/endings/excellent/male-study.png';
+    ? '/assets/endings/excellent/female-frame-1.webp'
+    : '/assets/endings/excellent/male-study.webp';
   const teacherImage = isFemale
-    ? '/assets/endings/excellent/female-teacher-checking.png'
-    : '/assets/endings/excellent/male-teacher-checking.png';
+    ? '/assets/endings/excellent/female-teacher-checking.webp'
+    : '/assets/endings/excellent/male-teacher-checking.webp';
   const passbookImage = isFemale
-    ? '/assets/endings/excellent/female-passbook.png'
-    : '/assets/endings/excellent/male-passbook.png';
+    ? '/assets/endings/excellent/female-passbook.webp'
+    : '/assets/endings/excellent/male-passbook.webp';
   const preparedLine = isFemale
     ? 'Ещё пять минут, надо убедиться, что всё запомнила.'
     : 'Ещё пять минут, надо убедиться, что всё запомнил.';
@@ -2378,33 +2366,33 @@ function buildExcellentEndingBeats(correctAnswers: number, endingType: 'brave' |
         : 'Ну и ладно, пару ошибок — ничего страшного. Главное, зачёт сдан! Последний зачёт позади, можно наконец выдохнуть. Свобода!');
   return [
     { image: studyImage, speaker: 'МЫСЛИ', text: 'На часах 03:40. До зачёта остаётся всего несколько часов.', period: 'past', alt: 'Первое лицо: конспекты и учебники на столе, время 03:40' },
-    { image: '/assets/endings/excellent/flashback-mother.png', speaker: 'МАМА', text: 'Ты спать-то собираешься?', period: 'past', alt: 'Мама открывает дверь и заглядывает в комнату поздней ночью' },
+    { image: '/assets/endings/excellent/flashback-mother.webp', speaker: 'МАМА', text: 'Ты спать-то собираешься?', period: 'past', alt: 'Мама открывает дверь и заглядывает в комнату поздней ночью' },
     { image: studyImage, speaker: playerName, text: preparedLine, period: 'past', alt: 'Отличник продолжает готовиться к зачёту' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: 'Так, ладно, проверю вашу ведомость…', period: 'present', alt: 'Преподавательница проверяет ведомость в аудитории', fade: true },
-    { image: (isFemale ? '/assets/endings/excellent/female-result-background.png' : '/assets/endings/excellent/male-result-background.png'), speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: teacherResultLine, period: 'present', alt: isFemale ? 'Первое лицо: студентка держит зачётку, преподавательница объявляет итог зачёта' : 'Первое лицо: студент держит зачётку, преподавательница объявляет итог зачёта' },
-    { image: (isFailedEnding ? (isFemale ? '/assets/endings/excellent/female-result-background.png' : '/assets/endings/excellent/male-result-background.png') : passbookImage), speaker: playerName, text: studentResultLine, period: 'present', alt: isFailedEnding ? (isFemale ? 'Первое лицо: студентка держит зачётку и реагирует на несданный зачёт' : 'Первое лицо: студент держит зачётку и реагирует на несданный зачёт') : 'Отличник реагирует на результат зачёта' },
+    { image: (isFemale ? '/assets/endings/excellent/female-result-background.webp' : '/assets/endings/excellent/male-result-background.webp'), speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: teacherResultLine, period: 'present', alt: isFemale ? 'Первое лицо: студентка держит зачётку, преподавательница объявляет итог зачёта' : 'Первое лицо: студент держит зачётку, преподавательница объявляет итог зачёта' },
+    { image: (isFailedEnding ? (isFemale ? '/assets/endings/excellent/female-result-background.webp' : '/assets/endings/excellent/male-result-background.webp') : passbookImage), speaker: playerName, text: studentResultLine, period: 'present', alt: isFailedEnding ? (isFemale ? 'Первое лицо: студентка держит зачётку и реагирует на несданный зачёт' : 'Первое лицо: студент держит зачётку и реагирует на несданный зачёт') : 'Отличник реагирует на результат зачёта' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'Подготовитесь лучше к пересдаче.' : 'Иди уже.', period: 'present', alt: 'Преподавательница указывает в сторону двери' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Пустой университетский коридор в тёплом вечернем свете; студент выходит из аудитории' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: isFailedEnding ? 'Расстроенный студент идёт по университетскому коридору после неудачной сдачи зачёта' : 'Студент идёт по университетскому коридору после сдачи последнего зачёта' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в университетском коридоре' }
+    { image: '/assets/endings/excellent/hallway.webp', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Пустой университетский коридор в тёплом вечернем свете; студент выходит из аудитории' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: isFailedEnding ? 'Расстроенный студент идёт по университетскому коридору после неудачной сдачи зачёта' : 'Студент идёт по университетскому коридору после сдачи последнего зачёта' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в университетском коридоре' }
   ];
 }
 function buildBraveEndingBeats(correctAnswers: number, playerName: string, isFemale: boolean): ExcellentEndingBeat[] {
   const isBestEnding = correctAnswers >= 6;
   const isFailedEnding = correctAnswers <= 3;
   const flashback1 = isFemale
-    ? '/assets/endings/brave/female-frame-1.png'
-    : '/assets/endings/brave/male-frame-1.png';
+    ? '/assets/endings/brave/female-frame-1.webp'
+    : '/assets/endings/brave/male-frame-1.webp';
   const flashback2 = isFemale
-    ? '/assets/endings/brave/female-frame-2.png'
-    : '/assets/endings/brave/male-frame-2.png';
+    ? '/assets/endings/brave/female-frame-2.webp'
+    : '/assets/endings/brave/male-frame-2.webp';
   const teacherImage = isFemale
-    ? '/assets/endings/excellent/female-teacher-checking.png'
-    : '/assets/endings/excellent/male-teacher-checking.png';
+    ? '/assets/endings/excellent/female-teacher-checking.webp'
+    : '/assets/endings/excellent/male-teacher-checking.webp';
   const resultImage = isFemale
-    ? '/assets/endings/excellent/female-result-background.png'
-    : '/assets/endings/excellent/male-result-background.png';
+    ? '/assets/endings/excellent/female-result-background.webp'
+    : '/assets/endings/excellent/male-result-background.webp';
   const studentResultLine = isFailedEnding
     ? (isFemale
       ? 'Вот это поворот… Я была уверена, что вывезу, но одной уверенности оказалось мало. Ладно, бывает. В следующий раз подготовлюсь, а не буду надеяться на удачу.'
@@ -2435,10 +2423,10 @@ function buildBraveEndingBeats(correctAnswers: number, playerName: string, isFem
     { image: resultImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'К сожалению, вы не сдали зачёт.' : isBestEnding ? 'Вы сдали зачёт, поздравляю.' : 'Вы сдали зачёт, не идеально, конечно, но сдали.', period: 'present', alt: 'Преподавательница объявляет итог зачёта' },
     { image: resultImage, speaker: playerName, text: studentResultLine, period: 'present', alt: 'Смельчак реагирует на результат зачёта' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'Подготовитесь лучше к пересдаче.' : 'Иди уже.', period: 'present', alt: 'Преподавательница указывает в сторону двери' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Смельчак размышляет об уверенности и результате зачёта' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
+    { image: '/assets/endings/excellent/hallway.webp', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Смельчак размышляет об уверенности и результате зачёта' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
   ];
 }
 
@@ -2446,20 +2434,17 @@ function buildTricksterEndingBeats(correctAnswers: number, playerName: string, i
   const isBestEnding = correctAnswers >= 6;
   const isFailedEnding = correctAnswers <= 3;
   const flashback1 = isFemale
-    ? '/assets/endings/trickster/female-frame-1.png'
-    : '/assets/endings/trickster/male-frame-1.png';
+    ? '/assets/endings/trickster/female-frame-1.webp'
+    : '/assets/endings/trickster/male-frame-1.webp';
   const flashback2 = isFemale
-    ? '/assets/endings/trickster/female-frame-2.png'
-    : '/assets/endings/trickster/male-frame-2.png';
+    ? '/assets/endings/trickster/female-frame-2.webp'
+    : '/assets/endings/trickster/male-frame-2.webp';
   const teacherImage = isFemale
-    ? '/assets/endings/excellent/female-teacher-checking.png'
-    : '/assets/endings/excellent/male-teacher-checking.png';
+    ? '/assets/endings/excellent/female-teacher-checking.webp'
+    : '/assets/endings/excellent/male-teacher-checking.webp';
   const resultImage = isFemale
-    ? '/assets/endings/excellent/female-result-background.png'
-    : '/assets/endings/excellent/male-result-background.png';
-  const passbookImage = isFemale
-    ? '/assets/endings/excellent/female-passbook.png'
-    : '/assets/endings/excellent/male-passbook.png';
+    ? '/assets/endings/excellent/female-result-background.webp'
+    : '/assets/endings/excellent/male-result-background.webp';
   const studentResultLine = isFailedEnding
     ? (isFemale
       ? 'Так, спокойно. Похоже, шпаргалки сегодня подвели. Надо было учить, а не только хитрить.'
@@ -2489,27 +2474,27 @@ function buildTricksterEndingBeats(correctAnswers: number, playerName: string, i
     { image: resultImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'К сожалению, вы не сдали зачёт.' : isBestEnding ? 'Вы сдали зачёт, поздравляю.' : 'Вы сдали зачёт, не идеально, конечно, но сдали.', period: 'present', alt: 'Первое лицо: студент держит зачётку, преподавательница объявляет итог зачёта' },
     { image: resultImage, speaker: playerName, text: studentResultLine, period: 'present', alt: isFailedEnding ? 'Трикстер реагирует на несданный зачёт' : 'Трикстер реагирует на успешно сданный зачёт' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'Подготовитесь лучше к пересдаче.' : 'Иди уже.', period: 'present', alt: 'Преподавательница указывает в сторону двери' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Трикстер размышляет о результате зачёта в коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
+    { image: '/assets/endings/excellent/hallway.webp', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Трикстер размышляет о результате зачёта в коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
   ];
 }
 function buildCharismaEndingBeats(correctAnswers: number, playerName: string, isFemale: boolean): ExcellentEndingBeat[] {
   const isBestEnding = correctAnswers >= 6;
   const isFailedEnding = correctAnswers <= 3;
   const flashback1 = isFemale
-    ? '/assets/endings/charisma/megan-frame-1.png'
-    : '/assets/endings/charisma/gosling-frame-1.png';
+    ? '/assets/endings/charisma/megan-frame-1.webp'
+    : '/assets/endings/charisma/gosling-frame-1.webp';
   const flashback2 = isFemale
-    ? '/assets/endings/charisma/megan-frame-2.png'
-    : '/assets/endings/charisma/gosling-frame-2.png';
+    ? '/assets/endings/charisma/megan-frame-2.webp'
+    : '/assets/endings/charisma/gosling-frame-2.webp';
   const teacherImage = isFemale
-    ? '/assets/endings/excellent/female-teacher-checking.png'
-    : '/assets/endings/excellent/male-teacher-checking.png';
+    ? '/assets/endings/excellent/female-teacher-checking.webp'
+    : '/assets/endings/excellent/male-teacher-checking.webp';
   const resultImage = isFemale
-    ? '/assets/endings/excellent/female-result-background.png'
-    : '/assets/endings/excellent/male-result-background.png';
+    ? '/assets/endings/excellent/female-result-background.webp'
+    : '/assets/endings/excellent/male-result-background.webp';
   const studentResultLine = isFailedEnding
     ? (isFemale
       ? 'Ладно, сегодня одной улыбки оказалось мало. Похоже, преподавательница всё-таки ждала ответы, а не обаяние.'
@@ -2539,23 +2524,23 @@ function buildCharismaEndingBeats(correctAnswers: number, playerName: string, is
     { image: resultImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'К сожалению, вы не сдали зачёт.' : isBestEnding ? 'Вы сдали зачёт, поздравляю.' : 'Вы сдали зачёт, не идеально, конечно, но сдали.', period: 'present', alt: 'Преподавательница объявляет итог зачёта' },
     { image: resultImage, speaker: playerName, text: studentResultLine, period: 'present', alt: isFailedEnding ? 'Герой реагирует на несданный зачёт' : 'Герой реагирует на успешно сданный зачёт' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'Подготовитесь лучше к пересдаче.' : 'Иди уже.', period: 'present', alt: 'Преподавательница указывает в сторону двери' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Герой размышляет о харизме и результате зачёта в коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке героя в университетском коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Герой отвечает на звонок мамы в коридоре' }
+    { image: '/assets/endings/excellent/hallway.webp', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Герой размышляет о харизме и результате зачёта в коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке героя в университетском коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Герой отвечает на звонок мамы в коридоре' }
   ];
 }
 function buildAnalystEndingBeats(correctAnswers: number, playerName: string, isFemale: boolean): ExcellentEndingBeat[] {
   const isBestEnding = correctAnswers >= 6;
   const isFailedEnding = correctAnswers <= 3;
-  const flashback1 = '/assets/endings/analyst/analyst-frame-1.png';
-  const flashback2 = '/assets/endings/analyst/analyst-frame-2.png';
+  const flashback1 = '/assets/endings/analyst/analyst-frame-1.webp';
+  const flashback2 = '/assets/endings/analyst/analyst-frame-2.webp';
   const teacherImage = isFemale
-    ? '/assets/endings/excellent/female-teacher-checking.png'
-    : '/assets/endings/excellent/male-teacher-checking.png';
+    ? '/assets/endings/excellent/female-teacher-checking.webp'
+    : '/assets/endings/excellent/male-teacher-checking.webp';
   const resultImage = isFemale
-    ? '/assets/endings/excellent/female-result-background.png'
-    : '/assets/endings/excellent/male-result-background.png';
+    ? '/assets/endings/excellent/female-result-background.webp'
+    : '/assets/endings/excellent/male-result-background.webp';
   const studentResultLine = isFailedEnding
     ? (isFemale
       ? 'Странно. Я всё рассчитала, проверила факты, рассмотрела варианты… Значит, в исходных данных была ошибка.'
@@ -2585,10 +2570,10 @@ function buildAnalystEndingBeats(correctAnswers: number, playerName: string, isF
     { image: resultImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'К сожалению, вы не сдали зачёт.' : isBestEnding ? 'Вы сдали зачёт, поздравляю.' : 'Вы сдали зачёт, не идеально, конечно, но сдали.', period: 'present', alt: 'Преподавательница объявляет итог зачёта' },
     { image: resultImage, speaker: playerName, text: studentResultLine, period: 'present', alt: isFailedEnding ? 'Аналитик осмысливает неудачный результат' : 'Аналитик реагирует на результат зачёта' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'Подготовитесь лучше к пересдаче.' : 'Иди уже.', period: 'present', alt: 'Преподавательница указывает в сторону двери' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: playerName, text: isFemale ? 'Всего хорошего!' : 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Аналитик размышляет о результате зачёта в коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
+    { image: '/assets/endings/excellent/hallway.webp', speaker: playerName, text: isFemale ? 'Всего хорошего!' : 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Аналитик размышляет о результате зачёта в коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
   ];
 }
 
@@ -2596,17 +2581,17 @@ function buildObserverEndingBeats(correctAnswers: number, playerName: string, is
   const isBestEnding = correctAnswers >= 6;
   const isFailedEnding = correctAnswers <= 3;
   const flashback1 = isFemale
-    ? '/assets/endings/observer/female-frame-1.png'
-    : '/assets/endings/observer/male-frame-1.png';
+    ? '/assets/endings/observer/female-frame-1.webp'
+    : '/assets/endings/observer/male-frame-1.webp';
   const flashback2 = isFemale
-    ? '/assets/endings/observer/female-frame-2.png'
-    : '/assets/endings/observer/male-frame-2.png';
+    ? '/assets/endings/observer/female-frame-2.webp'
+    : '/assets/endings/observer/male-frame-2.webp';
   const teacherImage = isFemale
-    ? '/assets/endings/excellent/female-teacher-checking.png'
-    : '/assets/endings/excellent/male-teacher-checking.png';
+    ? '/assets/endings/excellent/female-teacher-checking.webp'
+    : '/assets/endings/excellent/male-teacher-checking.webp';
   const resultImage = isFemale
-    ? '/assets/endings/excellent/female-result-background.png'
-    : '/assets/endings/excellent/male-result-background.png';
+    ? '/assets/endings/excellent/female-result-background.webp'
+    : '/assets/endings/excellent/male-result-background.webp';
   const studentResultLine = isFailedEnding
     ? (isFemale
       ? 'Я упустила что-то важное. Надо было внимательнее проверить детали, а не просто запомнить их.'
@@ -2636,10 +2621,10 @@ function buildObserverEndingBeats(correctAnswers: number, playerName: string, is
     { image: resultImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'К сожалению, вы не сдали зачёт.' : isBestEnding ? 'Вы сдали зачёт, поздравляю.' : 'Вы сдали зачёт, не идеально, конечно, но сдали.', period: 'present', alt: 'Преподавательница объявляет итог зачёта' },
     { image: resultImage, speaker: playerName, text: studentResultLine, period: 'present', alt: isFailedEnding ? 'Наблюдатель осмысливает неудачный результат' : 'Наблюдатель реагирует на результат зачёта' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'Подготовитесь лучше к пересдаче.' : 'Иди уже.', period: 'present', alt: 'Преподавательница указывает в сторону двери' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Наблюдатель размышляет о результате зачёта в коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
+    { image: '/assets/endings/excellent/hallway.webp', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Наблюдатель размышляет о результате зачёта в коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
   ];
 }
 
@@ -2648,17 +2633,17 @@ function buildUniversalEndingBeats(correctAnswers: number, playerName: string, i
   const isBestEnding = correctAnswers >= 6;
   const isFailedEnding = correctAnswers <= 3;
   const flashback1 = isFemale
-    ? '/assets/endings/universal/female-frame-1.png'
-    : '/assets/endings/universal/male-frame-1.png';
+    ? '/assets/endings/universal/female-frame-1.webp'
+    : '/assets/endings/universal/male-frame-1.webp';
   const flashback2 = isFemale
-    ? '/assets/endings/universal/female-frame-2.png'
-    : '/assets/endings/universal/male-frame-2.png';
+    ? '/assets/endings/universal/female-frame-2.webp'
+    : '/assets/endings/universal/male-frame-2.webp';
   const teacherImage = isFemale
-    ? '/assets/endings/excellent/female-teacher-checking.png'
-    : '/assets/endings/excellent/male-teacher-checking.png';
+    ? '/assets/endings/excellent/female-teacher-checking.webp'
+    : '/assets/endings/excellent/male-teacher-checking.webp';
   const resultImage = isFemale
-    ? '/assets/endings/excellent/female-result-background.png'
-    : '/assets/endings/excellent/male-result-background.png';
+    ? '/assets/endings/excellent/female-result-background.webp'
+    : '/assets/endings/excellent/male-result-background.webp';
   const studentResultLine = isFailedEnding
     ? (isFemale
       ? 'Ну вот… Надеялась, что обычной подготовки хватит. Видимо, какие-то темы всё-таки стоило повторить получше.'
@@ -2693,10 +2678,10 @@ function buildUniversalEndingBeats(correctAnswers: number, playerName: string, i
     { image: resultImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'К сожалению, вы не сдали зачёт.' : isBestEnding ? 'Вы сдали зачёт, поздравляю.' : 'Вы сдали зачёт, не идеально, конечно, но сдали.', period: 'present', alt: 'Преподавательница объявляет итог зачёта' },
     { image: resultImage, speaker: playerName, text: normalizedResultLine, period: 'present', alt: isFailedEnding ? 'Универсал осмысливает неудачный результат' : 'Универсал реагирует на результат зачёта' },
     { image: teacherImage, speaker: 'ПРЕПОДАВАТЕЛЬНИЦА', text: isFailedEnding ? 'Подготовитесь лучше к пересдаче.' : 'Иди уже.', period: 'present', alt: 'Преподавательница указывает в сторону двери' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Обычный студент размышляет о результате зачёта в коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
-    { image: '/assets/endings/excellent/hallway.png', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
+    { image: '/assets/endings/excellent/hallway.webp', speaker: playerName, text: 'Всего хорошего!', period: 'present', alt: 'Студент выходит в университетский коридор' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: monologueLine, period: 'present', alt: 'Обычный студент размышляет о результате зачёта в коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МЫСЛИ', text: 'Телефон начинает звонить.', period: 'present', alt: 'Телефон звонит в руке студента в университетском коридоре' },
+    { image: '/assets/endings/excellent/hallway.webp', speaker: 'МАМА · ТЕЛЕФОН', text: 'Ну что, рассказывай, как прошёл зачёт?', period: 'present', alt: 'Студент отвечает на звонок мамы в коридоре' }
   ];
 }
 
@@ -2781,7 +2766,7 @@ function showFinalResultScreen(): void {
     background: '#132744', opacity: '0', transition: 'opacity .7s ease'
   });
   const background = document.createElement('img');
-  background.src = '/assets/endings/final-screen/campus-background.png';
+  background.src = '/assets/campus-background.webp';
   background.alt = '';
   Object.assign(background.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.08)', animation: 'final-campus-drift 28s ease-in-out infinite alternate', willChange: 'transform' });
   const book = document.createElement('div');
@@ -2789,12 +2774,12 @@ function showFinalResultScreen(): void {
   book.addEventListener('pointerenter', () => { book.style.transform = 'translateY(-10px) scale(1.008)'; book.style.filter = 'drop-shadow(0 18px 18px rgba(0,0,0,.38))'; });
   book.addEventListener('pointerleave', () => { book.style.transform = 'translateY(0) scale(1)'; book.style.filter = 'drop-shadow(0 0 0 rgba(0,0,0,0))'; });
   const texture = document.createElement('img');
-  texture.src = '/assets/endings/final-screen/passbook.png';
+  texture.src = '/assets/endings/final-screen/passbook.webp';
   texture.alt = 'Итог зачёта';
   Object.assign(texture.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain' });
   book.appendChild(texture);
 
-  const player = (() => { try { return JSON.parse(localStorage.getItem('last-exam-player-data') || '{}'); } catch { return {}; } })();
+  const player = (() => { try { return JSON.parse(gameStorage.getItem('last-exam-player-data') || '{}'); } catch { return {}; } })();
   const archetype = (lockedArchetype || calculateArchetype()).name;
   const result = examCorrectCount <= 3 ? 'НЕ СДАН' : examCorrectCount >= 6 ? 'ОТЛИЧНО' : 'ЗАЧЁТ';
   const date = new Date();
@@ -2829,12 +2814,12 @@ function showFinalResultScreen(): void {
   const portrait = document.createElement('img');
   portrait.alt = 'Портрет игрока';
   portrait.src = selection.gender === 'female'
-    ? `/assets/characters/student_girl${selection.femalePreset + 1}/card.png`
+    ? `/assets/characters/student_girl${selection.femalePreset + 1}/card.webp`
     : selection.malePreset === SECRET_MALE_PRESET
-      ? '/assets/characters/student_male6/card.png'
+      ? '/assets/characters/student_male6/card.webp'
       : selection.malePreset === DEVIL_MALE_PRESET
-        ? '/assets/characters/student_male7/card.png'
-        : `/assets/characters/student_boy${selection.malePreset + 1}/card.png`;
+        ? '/assets/characters/student_male7/card.webp'
+        : `/assets/characters/student_boy${selection.malePreset + 1}/card.webp`;
   Object.assign(portrait.style, {
     position: 'absolute', left: '15.5%', top: '27.2%', width: '13.8%', height: '39.8%',
     objectFit: 'contain', objectPosition: 'center', zIndex: '2'
@@ -2850,15 +2835,15 @@ function showFinalResultScreen(): void {
     : examCorrectCount >= 6
       ? '/assets/endings/final-screen/excellent-result.mp3'
       : '/assets/endings/final-screen/pass-result.mp3';
-  const resultMusic = new Audio('/assets/endings/final-screen/omplete-sound.mp3');
+  const resultMusic = createAudio('/assets/endings/final-screen/omplete-sound.mp3');
   resultMusic.loop = true;
   resultMusic.volume = 0.72;
-  resultMusic.preload = 'auto';
+  resultMusic.preload = 'none';
   resultMusic.dataset.finalResultMusic = 'true';
-  const resultSting = new Audio(resultStingPath);
+  const resultSting = createAudio(resultStingPath);
   resultSting.loop = false;
   resultSting.volume = 0.82;
-  resultSting.preload = 'auto';
+  resultSting.preload = 'none';
   resultSting.dataset.finalResultMusic = 'true';
   let resultAudioStopped = false;
   const startLoopingResultMusic = () => {
@@ -2931,10 +2916,10 @@ function showFinalResultScreen(): void {
       teacherFatigue = 0; teacherRelationship = 50; teacherBeats = []; teacherBeatIndex = 0;
       teacherChoiceMade = false; teacherSceneBusy = false;
       examQuestionIndex = 0; examCorrectCount = 0; examHintsUsed = 0; examCheatAttempts = 0;
-      examRudeUsed = false; examPhase = 'question'; examFeedbackLines = []; examFeedbackIndex = 0;
+      examPhase = 'question'; examFeedbackLines = []; examFeedbackIndex = 0;
       examQuestionCheatStart = 0; examAnswerOrders = []; examQuestionRude = false; examStarted = false;
       skills = { knowledge: 0, logic: 0, charisma: 0, cunning: 0, confidence: 0, attention: 0 };
-      localStorage.removeItem(SKILLS_KEY);
+      gameStorage.removeItem(SKILLS_KEY);
       activeEmotion = 'normal';
       applyCharacterEmotion('normal');
       renderSelection();
@@ -3028,10 +3013,10 @@ function showFinalResultScreen(): void {
       teacherFatigue = 0; teacherRelationship = 50; teacherBeats = []; teacherBeatIndex = 0;
       teacherChoiceMade = false; teacherSceneBusy = false;
       examQuestionIndex = 0; examCorrectCount = 0; examHintsUsed = 0; examCheatAttempts = 0;
-      examRudeUsed = false; examPhase = 'question'; examFeedbackLines = []; examFeedbackIndex = 0;
+      examPhase = 'question'; examFeedbackLines = []; examFeedbackIndex = 0;
       examQuestionCheatStart = 0; examAnswerOrders = []; examQuestionRude = false; examStarted = false;
       skills = { knowledge: 0, logic: 0, charisma: 0, cunning: 0, confidence: 0, attention: 0 };
-      localStorage.removeItem(SKILLS_KEY);
+      gameStorage.removeItem(SKILLS_KEY);
       renderSkills();
 
       // Reuse the regular character-selection transition so the page is visibly restored,
@@ -3084,7 +3069,7 @@ function startEndingCredits(): void {
   video.autoplay = true;
   video.controls = false;
   video.playsInline = true;
-  video.preload = 'auto';
+  video.preload = 'none';
   // Play the supplied credits video with its original audio.
   video.muted = false;
   video.volume = 1.0;
@@ -3140,6 +3125,7 @@ async function advanceExcellentEnding(): Promise<void> {
     return;
   }
   excellentEndingTransition = true;
+  if (next) next.disabled = true;
   const current = excellentEndingBeats[excellentEndingIndex];
   // After the flashback sequence (first three dialogue beats), hold black for 3 seconds
   // before revealing the present-day classroom.
@@ -3154,6 +3140,7 @@ async function advanceExcellentEnding(): Promise<void> {
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     overlay?.classList.remove('is-blackout');
     excellentEndingTransition = false;
+    if (next) next.disabled = false;
     return;
   }
   if (current?.fade) {
@@ -3170,6 +3157,7 @@ async function advanceExcellentEnding(): Promise<void> {
     overlay?.classList.remove('is-blackout');
   }
   excellentEndingTransition = false;
+    if (next) next.disabled = false;
 }
 function startExcellentEnding(correctAnswers: number, endingType: 'brave' | 'trickster' | 'charisma' | 'analyst' | 'observer' | 'universal' | 'excellent' = 'excellent'): void {
   endingRunDurationMs = corridorRunStartedAt > 0 ? Math.max(0, Date.now() - corridorRunStartedAt) : 0;

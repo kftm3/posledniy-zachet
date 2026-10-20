@@ -9,8 +9,8 @@
   </head>
   <body>
     <div id="app">
-      <audio id="intro-music" src="./audio/menu-gt4.mp3" preload="auto" loop playsinline></audio>
-      <audio id="corridor-ambience" src="./audio/corridor/people-chatting.wav" preload="auto" loop playsinline></audio>
+      <audio id="intro-music" src="./audio/menu-gt4.mp3" preload="none" loop playsinline></audio>
+      <audio id="corridor-ambience" src="./audio/corridor/people-chatting.flac" preload="none" loop playsinline></audio>
       <main class="game-root">
         <section class="game-stage start-screen" id="start-screen" aria-label="Главное меню Последний зачёт">
           <div class="campus" aria-hidden="true"></div>
@@ -21,7 +21,7 @@
             <span class="title-cap" aria-hidden="true">⌑</span>
           </div>
           <button class="start-button" id="start-button" type="button" aria-label="Начать игру">
-            <img src="/assets/start-button.png" alt="Начать игру" draggable="false" />
+            <img fetchpriority="high" decoding="async" src="/assets/start-button.webp" alt="Начать игру" draggable="false" />
           </button>
           <div class="credit" aria-label="Developed by kftm3">
             <span class="credit-small">developed by</span>
@@ -39,48 +39,48 @@
           </div>
 
           <div class="selector-panel male-panel" data-gender="male" aria-label="Мужские персонажи">
-            <img class="character-full-sprite male-boy1-sprite" id="male-boy1-sprite" src="/assets/characters/student_boy1/normal.png" alt="Персонаж 1: парень, обычное состояние" draggable="false" aria-hidden="true" />
-<img class="character-full-sprite male-boy2-sprite" id="male-boy2-sprite" src="/assets/characters/student_boy2/normal.png" alt="Персонаж 2: парень, обычное состояние" draggable="false" aria-hidden="true" />
-<img class="character-full-sprite male-boy3-sprite" id="male-boy3-sprite" src="/assets/characters/student_boy3/normal.png" alt="Персонаж 3: парень, обычное состояние" draggable="false" aria-hidden="true" />
-<img class="character-full-sprite male-boy4-sprite" id="male-boy4-sprite" src="/assets/characters/student_boy4/normal.png" alt="Персонаж 4: парень, обычное состояние" draggable="false" aria-hidden="true" />
-<img class="character-full-sprite male-boy5-sprite" id="male-boy5-sprite" src="/assets/characters/student_boy5/normal.png" alt="Персонаж 5: парень, обычное состояние" draggable="false" aria-hidden="true" />
-<img class="character-full-sprite male-boy6-sprite" id="male-boy6-sprite" src="/assets/characters/student_male6/normal.png" alt="Секретный персонаж: Карл Джонсон" draggable="false" aria-hidden="true" />
-<img class="character-full-sprite male-boy7-sprite" id="male-boy7-sprite" src="/assets/characters/student_male7/normal.png" alt="Секретный персонаж: Мик Томпсон" draggable="false" aria-hidden="true" />
-            <img class="panel-art" src="/assets/character_selector_male.png" alt="Парень. Классический путь студента. Дружба, экзамены, выборы и неожиданные повороты." draggable="false" />
+            <img loading="lazy" decoding="async" class="character-full-sprite male-boy1-sprite" id="male-boy1-sprite" alt="Персонаж 1: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img loading="lazy" decoding="async" class="character-full-sprite male-boy2-sprite" id="male-boy2-sprite" alt="Персонаж 2: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img loading="lazy" decoding="async" class="character-full-sprite male-boy3-sprite" id="male-boy3-sprite" alt="Персонаж 3: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img loading="lazy" decoding="async" class="character-full-sprite male-boy4-sprite" id="male-boy4-sprite" alt="Персонаж 4: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img loading="lazy" decoding="async" class="character-full-sprite male-boy5-sprite" id="male-boy5-sprite" alt="Персонаж 5: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img loading="lazy" decoding="async" class="character-full-sprite male-boy6-sprite" id="male-boy6-sprite" alt="Секретный персонаж: Карл Джонсон" draggable="false" aria-hidden="true" />
+<img loading="lazy" decoding="async" class="character-full-sprite male-boy7-sprite" id="male-boy7-sprite" alt="Секретный персонаж: Мик Томпсон" draggable="false" aria-hidden="true" />
+            <img loading="lazy" decoding="async" class="panel-art" src="/assets/character_selector_male.webp" alt="Парень. Классический путь студента. Дружба, экзамены, выборы и неожиданные повороты." draggable="false" />
             <button class="panel-hit" type="button" aria-label="Выбрать мужского персонажа"></button>
             <button class="arrow-hit arrow-left" type="button" aria-label="Предыдущий мужской персонаж"></button>
             <button class="arrow-hit arrow-right" type="button" aria-label="Следующий мужской персонаж"></button>
             <div class="slot-hitboxes" aria-label="Варианты мужского персонажа">
-              <button class="portrait-slot has-portrait" type="button" data-index="0" aria-label="Мужской персонаж 1"><img src="/assets/characters/student_boy1/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="1" aria-label="Мужской персонаж 2"><img src="/assets/characters/student_boy2/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="2" aria-label="Мужской персонаж 3"><img src="/assets/characters/student_boy3/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="3" aria-label="Мужской персонаж 4"><img src="/assets/characters/student_boy4/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="4" aria-label="Мужской персонаж 5"><img src="/assets/characters/student_boy5/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait secret-portrait-slot is-hidden" type="button" data-index="5" data-secret="cj" aria-label="Секретный мужской персонаж: Карл Джонсон" aria-hidden="true"><img src="/assets/characters/student_male6/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait devil-portrait-slot is-hidden" type="button" data-index="6" data-secret="devil" aria-label="Секретный мужской персонаж: Мик Томпсон" aria-hidden="true"><img src="/assets/characters/student_male7/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="0" aria-label="Мужской персонаж 1"><img loading="lazy" decoding="async" src="/assets/characters/student_boy1/card.webp" srcset="/assets/characters/student_boy1/card-256.webp 256w, /assets/characters/student_boy1/card-512.webp 512w, /assets/characters/student_boy1/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="1" aria-label="Мужской персонаж 2"><img loading="lazy" decoding="async" src="/assets/characters/student_boy2/card.webp" srcset="/assets/characters/student_boy2/card-256.webp 256w, /assets/characters/student_boy2/card-512.webp 512w, /assets/characters/student_boy2/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="2" aria-label="Мужской персонаж 3"><img loading="lazy" decoding="async" src="/assets/characters/student_boy3/card.webp" srcset="/assets/characters/student_boy3/card-256.webp 256w, /assets/characters/student_boy3/card-512.webp 512w, /assets/characters/student_boy3/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="3" aria-label="Мужской персонаж 4"><img loading="lazy" decoding="async" src="/assets/characters/student_boy4/card.webp" srcset="/assets/characters/student_boy4/card-256.webp 256w, /assets/characters/student_boy4/card-512.webp 512w, /assets/characters/student_boy4/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="4" aria-label="Мужской персонаж 5"><img loading="lazy" decoding="async" src="/assets/characters/student_boy5/card.webp" srcset="/assets/characters/student_boy5/card-256.webp 256w, /assets/characters/student_boy5/card-512.webp 512w, /assets/characters/student_boy5/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait secret-portrait-slot is-hidden" type="button" data-index="5" data-secret="cj" aria-label="Секретный мужской персонаж: Карл Джонсон" aria-hidden="true"><img loading="lazy" decoding="async" src="/assets/characters/student_male6/card.webp" srcset="/assets/characters/student_male6/card-256.webp 256w, /assets/characters/student_male6/card-512.webp 512w, /assets/characters/student_male6/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait devil-portrait-slot is-hidden" type="button" data-index="6" data-secret="devil" aria-label="Секретный мужской персонаж: Мик Томпсон" aria-hidden="true"><img loading="lazy" decoding="async" src="/assets/characters/student_male7/card.webp" srcset="/assets/characters/student_male7/card-256.webp 256w, /assets/characters/student_male7/card-512.webp 512w, /assets/characters/student_male7/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
             </div>
           </div>
 
           <div class="selector-panel female-panel" data-gender="female" aria-label="Женские персонажи">
-            <img class="character-full-sprite female-girl1-sprite" id="female-girl1-sprite" src="/assets/characters/student_girl1/normal.png" alt="Персонаж 1: девушка, обычное состояние" draggable="false" aria-hidden="true" />
-            <img class="character-full-sprite female-girl2-sprite" id="female-girl2-sprite" src="/assets/characters/student_girl2/normal.png" alt="Персонаж 2: девушка, обычное состояние" draggable="false" aria-hidden="true" />
-            <img class="character-full-sprite female-girl3-sprite" id="female-girl3-sprite" src="/assets/characters/student_girl3/normal.png" alt="Персонаж 3: девушка, обычное состояние" draggable="false" aria-hidden="true" />
-            <img class="character-full-sprite female-girl4-sprite" id="female-girl4-sprite" src="/assets/characters/student_girl4/normal.png" alt="Персонаж 4: девушка, обычное состояние" draggable="false" aria-hidden="true" />
-            <img class="character-full-sprite female-girl5-sprite" id="female-girl5-sprite" src="/assets/characters/student_girl5/normal.png" alt="Персонаж 5: девушка, обычное состояние" draggable="false" aria-hidden="true" />
-            <img class="panel-art" src="/assets/character_selector_female.png" alt="Девушка. Альтернативный взгляд на ту же историю. Новые диалоги, события и особые сцены." draggable="false" />
+            <img loading="lazy" decoding="async" class="character-full-sprite female-girl1-sprite" id="female-girl1-sprite" alt="Персонаж 1: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img loading="lazy" decoding="async" class="character-full-sprite female-girl2-sprite" id="female-girl2-sprite" alt="Персонаж 2: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img loading="lazy" decoding="async" class="character-full-sprite female-girl3-sprite" id="female-girl3-sprite" alt="Персонаж 3: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img loading="lazy" decoding="async" class="character-full-sprite female-girl4-sprite" id="female-girl4-sprite" alt="Персонаж 4: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img loading="lazy" decoding="async" class="character-full-sprite female-girl5-sprite" id="female-girl5-sprite" alt="Персонаж 5: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img loading="lazy" decoding="async" class="panel-art" src="/assets/character_selector_female.webp" alt="Девушка. Альтернативный взгляд на ту же историю. Новые диалоги, события и особые сцены." draggable="false" />
             <button class="panel-hit" type="button" aria-label="Выбрать женского персонажа"></button>
             <button class="arrow-hit arrow-left" type="button" aria-label="Предыдущий женский персонаж"></button>
             <button class="arrow-hit arrow-right" type="button" aria-label="Следующий женский персонаж"></button>
             <div class="slot-hitboxes" aria-label="Варианты женского персонажа">
-              <button class="portrait-slot has-portrait" type="button" data-index="0" aria-label="Женский персонаж 1"><img src="/assets/characters/student_girl1/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="1" aria-label="Женский персонаж 2"><img src="/assets/characters/student_girl2/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="2" aria-label="Женский персонаж 3"><img src="/assets/characters/student_girl3/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="3" aria-label="Женский персонаж 4"><img src="/assets/characters/student_girl4/card.png" alt="" draggable="false" /></button>
-              <button class="portrait-slot has-portrait" type="button" data-index="4" aria-label="Женский персонаж 5"><img src="/assets/characters/student_girl5/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="0" aria-label="Женский персонаж 1"><img loading="lazy" decoding="async" src="/assets/characters/student_girl1/card.webp" srcset="/assets/characters/student_girl1/card-256.webp 256w, /assets/characters/student_girl1/card-512.webp 512w, /assets/characters/student_girl1/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="1" aria-label="Женский персонаж 2"><img loading="lazy" decoding="async" src="/assets/characters/student_girl2/card.webp" srcset="/assets/characters/student_girl2/card-256.webp 256w, /assets/characters/student_girl2/card-512.webp 512w, /assets/characters/student_girl2/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="2" aria-label="Женский персонаж 3"><img loading="lazy" decoding="async" src="/assets/characters/student_girl3/card.webp" srcset="/assets/characters/student_girl3/card-256.webp 256w, /assets/characters/student_girl3/card-512.webp 512w, /assets/characters/student_girl3/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="3" aria-label="Женский персонаж 4"><img loading="lazy" decoding="async" src="/assets/characters/student_girl4/card.webp" srcset="/assets/characters/student_girl4/card-256.webp 256w, /assets/characters/student_girl4/card-512.webp 512w, /assets/characters/student_girl4/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="4" aria-label="Женский персонаж 5"><img loading="lazy" decoding="async" src="/assets/characters/student_girl5/card.webp" srcset="/assets/characters/student_girl5/card-256.webp 256w, /assets/characters/student_girl5/card-512.webp 512w, /assets/characters/student_girl5/card.webp 1024w" sizes="8vw" alt="" draggable="false" /></button>
             </div>
           </div>
           <button class="nav-image-button continue-button" id="continue-button" type="button" aria-label="Продолжить">
-            <img src="/assets/button_continue.png" alt="Продолжить" draggable="false" />
+            <img loading="lazy" decoding="async" src="/assets/button_continue.webp" alt="Продолжить" draggable="false" />
           </button>
           <div class="selection-toast" id="selection-toast" role="status" aria-live="polite"></div>
         </section>
@@ -89,7 +89,7 @@
           <div class="input-shade" aria-hidden="true"></div>
           <button class="input-back-button" id="input-back-button" type="button" aria-label="Назад к выбору персонажа"><span aria-hidden="true">←</span> НАЗАД</button>
           <div class="notebook-wrap">
-            <img class="notebook-art" src="/assets/notebook_form_transparent.png" alt="Блокнот с формой ввода данных" draggable="false" />
+            <img loading="lazy" decoding="async" class="notebook-art" src="/assets/notebook_form_transparent.webp" alt="Блокнот с формой ввода данных" draggable="false" />
             <form class="player-form" id="player-form" autocomplete="on">
               <label class="player-field surname-field"><span>Фамилия</span><input name="surname" id="player-surname" type="text" maxlength="40" autocomplete="family-name" required /></label>
               <label class="player-field name-field"><span>Имя</span><input name="givenName" id="player-name" type="text" maxlength="40" autocomplete="given-name" required /></label>
@@ -130,8 +130,8 @@
           <div class="ticket-background" aria-hidden="true"></div><div class="ticket-shade" aria-hidden="true"></div>
           <header class="ticket-heading"><h1><span>ПОДТВЕРДИТЕ</span><span>ПЕРСОНАЖА</span></h1><p>Проверьте данные. После подтверждения<br>начнётся игра.</p></header>
           <div class="ticket-wrap">
-            <img class="ticket-art" src="/assets/student-ticket.png" alt="Студенческий билет Казанского инновационного университета" draggable="false" />
-            <div class="ticket-photo"><img id="ticket-photo" src="/assets/characters/student_girl1/card.png" alt="Выбранный персонаж" /></div>
+            <img loading="lazy" decoding="async" class="ticket-art" src="/assets/student-ticket.webp" alt="Студенческий билет Казанского инновационного университета" draggable="false" />
+            <div class="ticket-photo"><img loading="lazy" decoding="async" id="ticket-photo" src="/assets/characters/student_girl1/card.webp" alt="Выбранный персонаж" /></div>
             <div class="ticket-field-value ticket-surname" id="ticket-surname">Фамилия</div><div class="ticket-field-value ticket-name" id="ticket-name">Имя</div><div class="ticket-field-value ticket-group" id="ticket-group">Группа</div>
             <div class="ticket-archetype-icon" id="ticket-archetype-icon" aria-hidden="true"></div><div class="ticket-archetype-name" id="ticket-archetype-name">УНИВЕРСАЛ</div><div class="ticket-archetype-description" id="ticket-archetype-description">Твой стиль определится по распределению навыков.</div>
           </div>
@@ -140,8 +140,8 @@
         <section class="game-stage corridor-screen is-hidden" id="corridor-screen" aria-label="Сюжетная сцена в коридоре" aria-hidden="true">
           <div class="corridor-background" aria-hidden="true"></div>
           <div class="corridor-vignette" aria-hidden="true"></div>
-          <img class="corridor-character-sprite" id="corridor-character-sprite" src="/assets/characters/student_boy1/normal.png" alt="Персонаж игрока" />
-          <img class="corridor-friend-sprite is-hidden" id="corridor-friend-sprite" src="/assets/characters/student_girl1/normal.png" alt="Друг персонажа" aria-hidden="true" />
+          <img loading="lazy" decoding="async" class="corridor-character-sprite" id="corridor-character-sprite" src="/assets/characters/student_boy1/normal.webp" alt="Персонаж игрока" />
+          <img loading="lazy" decoding="async" class="corridor-friend-sprite is-hidden" id="corridor-friend-sprite" src="/assets/characters/student_girl1/normal.webp" alt="Друг персонажа" aria-hidden="true" />
           <div class="corridor-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · КОРИДОР</span></div>
           <div class="corridor-dialogue-layout">
             <div class="corridor-dialogue-left">
@@ -210,8 +210,8 @@
           <div class="teacher-intro-background" aria-hidden="true"></div>
           <div class="teacher-intro-shade" aria-hidden="true"></div>
           <div class="classroom-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · АУДИТОРИЯ</span></div>
-          <img class="teacher-scene-sprite" id="teacher-scene-sprite" src="/assets/characters/teacher/friendly.png" alt="Преподавательница" />
-          <img class="teacher-hero-sprite is-hidden" id="teacher-hero-sprite" src="/assets/characters/student_boy1/normal.png" alt="Главный герой" />
+          <img loading="lazy" decoding="async" class="teacher-scene-sprite" id="teacher-scene-sprite" src="/assets/characters/teacher/friendly.webp" alt="Преподавательница" />
+          <img loading="lazy" decoding="async" class="teacher-hero-sprite is-hidden" id="teacher-hero-sprite" src="/assets/characters/student_boy1/normal.webp" alt="Главный герой" />
           <div class="corridor-dialogue-layout classroom-dialogue-layout teacher-dialogue-layout">
             <div class="corridor-dialogue-left teacher-dialogue-left">
               <div class="corridor-player-name" id="teacher-speaker">ПРЕПОДАВАТЕЛЬНИЦА</div>
@@ -234,8 +234,8 @@
           <div class="exam-desk-background is-hidden" id="exam-desk-background" aria-hidden="true"></div>
           <div class="teacher-intro-shade exam-room-shade" id="exam-room-shade" aria-hidden="true"></div>
           <div class="classroom-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · АУДИТОРИЯ</span></div>
-          <img class="teacher-scene-sprite exam-teacher-sprite" id="exam-teacher-sprite" src="/assets/characters/teacher/friendly.png" alt="Преподавательница" />
-          <img class="teacher-hero-sprite exam-hero-sprite" id="exam-hero-sprite" src="/assets/characters/student_boy1/normal.png" alt="Главный герой" />
+          <img loading="lazy" decoding="async" class="teacher-scene-sprite exam-teacher-sprite" id="exam-teacher-sprite" src="/assets/characters/teacher/friendly.webp" alt="Преподавательница" />
+          <img loading="lazy" decoding="async" class="teacher-hero-sprite exam-hero-sprite" id="exam-hero-sprite" src="/assets/characters/student_boy1/normal.webp" alt="Главный герой" />
           <div class="corridor-dialogue-layout classroom-dialogue-layout exam-dialogue-layout" id="exam-dialogue-panel">
             <div class="corridor-dialogue-left teacher-dialogue-left exam-dialogue-left">
               <div class="corridor-player-name" id="exam-speaker">ПРЕПОДАВАТЕЛЬНИЦА</div>
@@ -258,7 +258,7 @@
 
         <section class="cameo-overlay is-hidden" id="cameo-overlay" aria-label="Камео KFTM3" aria-hidden="true">
             <div class="cameo-scene-frame">
-              <img class="cameo-scene-image" id="cameo-scene-image" src="/assets/cameo/kftm3-entry.png" alt="KFTM3 и друг входят в аудиторию" />
+              <img loading="lazy" decoding="async" class="cameo-scene-image" id="cameo-scene-image" src="/assets/cameo/kftm3-entry.webp" alt="KFTM3 и друг входят в аудиторию" />
             </div>
             <div class="corridor-dialogue-layout cameo-dialogue" id="cameo-dialogue-panel">
               <div class="corridor-dialogue-left">
@@ -273,11 +273,11 @@
           </section>
 
         <section class="disclaimer-overlay is-hidden" id="disclaimer-overlay" aria-label="Дисклеймер" aria-hidden="true">
-            <img class="disclaimer-image" src="/assets/disclaimer.jpg" alt="Дисклеймер игры «Последний зачёт»" />
+            <img loading="lazy" decoding="async" class="disclaimer-image" src="/assets/disclaimer.jpg" alt="Дисклеймер игры «Последний зачёт»" />
           </section>
 
         <section class="intro-video-overlay is-hidden" id="intro-video-overlay" aria-label="Вступительное видео" aria-hidden="true">
-            <video id="intro-video" class="intro-video" preload="auto" playsinline>
+            <video id="intro-video" class="intro-video" preload="none" playsinline>
               <source src="/video/last-exam-intro.mp4" type="video/mp4" />
             </video>
             <button class="intro-video-skip" id="intro-video-skip" type="button" aria-label="Пропустить вступительное видео">ПРОПУСТИТЬ <span>→</span></button>
@@ -291,7 +291,7 @@
   
         <section class="excellent-ending is-hidden" id="excellent-ending" aria-label="Концовка Отличника" aria-hidden="true">
           <div class="excellent-ending-scene" id="excellent-ending-scene">
-            <img class="excellent-ending-image" id="excellent-ending-image" src="/assets/endings/excellent/male-study.png" alt="Ночная подготовка Отличника к зачёту" />
+            <img loading="lazy" decoding="async" class="excellent-ending-image" id="excellent-ending-image" src="/assets/endings/excellent/male-study.webp" alt="Ночная подготовка Отличника к зачёту" />
             <div class="excellent-ending-period" id="excellent-ending-period">ПРОШЛОЙ НОЧЬЮ:</div>
             <div class="excellent-ending-vignette" aria-hidden="true"></div>
           </div>

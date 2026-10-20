@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "playwright test",
+    "test:assets": "node scripts/check-assets.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }
