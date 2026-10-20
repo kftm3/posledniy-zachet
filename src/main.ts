@@ -1,4 +1,6 @@
 import './style.css';
+import { AudioCue, unlockCueAudio } from './cue-audio';
+import { beginCharacterLoading, stopCharacterLoading } from './character-loading';
 import { coverScene, revealScene, transitionScene } from './transitions';
 import { createAudio } from './media';
 import { loadImage, warmImages, readyImages, prepareAudio, prepareMedia, swapImage } from './asset-loading';
@@ -489,12 +491,8 @@ skillAdjustSfx.volume = 0.975;
 const classroomDoorSound = createAudio('/audio/ui/minecraft-door-open.mp3');
 classroomDoorSound.preload = 'none';
 classroomDoorSound.volume = 0.8;
-const arthurHiSound = createAudio('/audio/ui/roblox-hi-sound.mp3');
-arthurHiSound.preload = 'none';
-arthurHiSound.volume = 0.8;
-const catMeowSound = createAudio('/audio/ui/meow-1.mp3');
-catMeowSound.preload = 'none';
-catMeowSound.volume = 0.9;
+const arthurHiSound = new AudioCue('/audio/ui/roblox-hi-sound.mp3', 0.8);
+const catMeowSound = new AudioCue('/audio/ui/meow-1.mp3', 0.9);
 
 function playUiSound(audio: HTMLAudioElement): void {
   try {
@@ -506,6 +504,7 @@ function playUiSound(audio: HTMLAudioElement): void {
   }
 }
 
+document.addEventListener('click', unlockCueAudio, { capture: true });
 document.addEventListener('click', (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const button = target?.closest('button');
@@ -530,12 +529,7 @@ endingMusic.volume = 0.72;
 const excellentEndingDoorSound = createAudio('/audio/ui/minecraft-door-open.mp3');
 excellentEndingDoorSound.preload = 'none';
 excellentEndingDoorSound.volume = 0.8;
-const excellentEndingPhoneSound = createAudio('/audio/endings/excellent-ending-phone.mp3');
-excellentEndingPhoneSound.preload = 'none';
-excellentEndingPhoneSound.volume = 0.9;
-const braveFriendPhoneSound = createAudio('/audio/endings/excellent-ending-phone.mp3');
-braveFriendPhoneSound.preload = 'none';
-braveFriendPhoneSound.volume = 0.9;
+const excellentEndingPhoneSound = new AudioCue('/audio/endings/excellent-ending-phone.mp3', 0.9, 0.30);
 function playExcellentEndingSound(sound: HTMLAudioElement): void {
   try {
     sound.pause();
@@ -823,6 +817,7 @@ function saveSelection(): void {
   gameStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
 }
 function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket' | 'corridor' | 'classroom-intro' | 'classroom-gallery' | 'classroom-classmates' | 'teacher-intro' | 'exam'): void {
+  if (screen !== 'character') stopCharacterLoading();
   const showStart = screen === 'start';
   const showCharacter = screen === 'character';
   const showInput = screen === 'input';
@@ -875,8 +870,10 @@ function renderSelection(): void {
   applyCharacterEmotion(activeEmotion);
   const version = ++selectionRenderVersion;
   if (characterScreen && !characterScreen.classList.contains('is-hidden')) {
+    const finishLoading = beginCharacterLoading();
     characterScreen.setAttribute('aria-busy', 'true');
     void loadImage(selectedSpritePath(activeEmotion)).then(loaded => {
+      finishLoading();
       if (version !== selectionRenderVersion) return;
       characterScreen.removeAttribute('aria-busy');
       if (!loaded) { showToast('Не удалось загрузить персонажа. Выберите его ещё раз.'); return; }
@@ -965,6 +962,8 @@ startButton?.addEventListener('click', async () => {
   isTransitioning = true;
   startButton.disabled = true;
 
+  const finishLoading = beginCharacterLoading();
+  void Promise.all([...selectionAssets, selectedSpritePath()].map(source => loadImage(source))).finally(finishLoading);
   await transitionScene(() => showScreen('character'), [...selectionAssets, selectedSpritePath()]);
 
   startButton.disabled = false;
@@ -1457,6 +1456,7 @@ function renderClassroomBeat(): void {
 }
 // v67.31 — removed the male preset #3 entrance sound; the preset itself remains available.
 async function beginClassroomIntro(): Promise<void> {
+  void arthurHiSound.prepare(); void catMeowSound.prepare();
   prepareClassroom();
   const roomReady = readyImages(classroomAssets);
   const corridorFade = fadeOutCorridorAudio(500);
@@ -1671,7 +1671,10 @@ function buildClassmatesBeats(): ClassmatesBeat[] {
     { speaker: 'Преподавательница', text: `${surname}, чего ${selection.gender === 'female' ? 'зависла' : 'завис'}? Проходи, начинаем.`, emotion: 'worried' }
   ];
 }
-function renderClassmatesBeat(): void {
+let classmatesRenderVersion = 0;
+async function renderClassmatesBeat(): Promise<void> {
+  const version = ++classmatesRenderVersion;
+  arthurHiSound.stop(); catMeowSound.stop();
   const text = document.getElementById('classmates-dialogue-text');
   const progress = document.getElementById('classmates-progress');
   const speaker = document.getElementById('classmates-speaker');
@@ -1686,6 +1689,13 @@ function renderClassmatesBeat(): void {
     next.onclick = () => window.dispatchEvent(new CustomEvent('game:classmates-scene-finished', { detail: { selection, skills, archetype: getArchetype().name } }));
     return;
   }
+  const cue = beat.speaker === 'Артур' && beat.text.trim() === 'Привет.' ? arthurHiSound : beat.speaker === 'Кот' && beat.text.trim() === 'Мяу!' ? catMeowSound : null;
+  if (cue) {
+    next.disabled = true;
+    await cue.prepare();
+    if (version !== classmatesRenderVersion) return;
+    next.disabled = false;
+  }
   speaker.textContent = beat.speaker === 'мысли' ? `МЫСЛИ · ${corridorPlayerName().toLocaleUpperCase('ru-RU')}` : beat.speaker.toLocaleUpperCase('ru-RU');
   text.textContent = beat.text;
   // Play the Roblox greeting sound once when Arthur's exact greeting is shown.
@@ -1693,11 +1703,11 @@ function renderClassmatesBeat(): void {
   if (beat.speaker === 'Артур' && beat.text.trim() === 'Привет.' && !arthurGreetingSoundPlayed) {
     unlockAchievement('hello');
     arthurGreetingSoundPlayed = true;
-    playUiSound(arthurHiSound);
+    arthurHiSound.play();
   }
   // Cat sound is a one-shot effect; it does not replace background music.
   if (beat.speaker === 'Кот' && beat.text.trim() === 'Мяу!') {
-    playUiSound(catMeowSound);
+    catMeowSound.play();
   }
   progress.textContent = `${classmatesIndex + 1} / ${classmatesBeats.length}`;
   next.innerHTML = classmatesIndex === classmatesBeats.length - 1 ? 'СЛУШАТЬ ПРЕПОДАВАТЕЛЬНИЦУ <span>→</span>' : 'ДАЛЬШЕ <span>→</span>';
@@ -2046,6 +2056,8 @@ function examShowRoom(speaker:string,text:string,_emotion='normal',heroEmotion?:
 function beginExam(): void {
  if(examStarted) return;
  warmImages(resultAssets);
+ prepareCameo(false);
+ void excellentEndingPhoneSound.prepare();
  examStarted=true; examQuestionIndex=0; examCorrectCount=0; examHintsUsed=0; examCheatAttempts=0; examQuestionCheatStart=0; examQuestionRude=false; examAnswerOrders=[]; examPhase='question'; examFeedbackIndex=0; cameoAfterQuestion=2+Math.floor(Math.random()*5); cameoBeatIndex=0; cameoActive=false; cameoPlayed=false;
  // Keep the classroom soundtrack running from the previous scene.
  showScreen('exam');
@@ -2055,6 +2067,7 @@ function beginExam(): void {
  requestAnimationFrame(()=>requestAnimationFrame(()=>screen?.classList.add('exam-entered')));
 }
 function openExamPaper(): void {
+ if (!cameoPlayed && examQuestionIndex + 1 >= cameoAfterQuestion - 1) prepareCameo(true);
  examPhase='paper';
  const screen=document.getElementById('exam-screen'); screen?.classList.add('exam-paper-open');
  document.getElementById('exam-room-background')?.classList.add('is-hidden');
@@ -2247,65 +2260,65 @@ function stopCameoMusicAndRestoreExam(): void {
   }
 }
 
-function startFriendlyCameo(): void {
- const overlay = document.getElementById('cameo-overlay');
- if (!overlay) return;
- activeCameoBeats = teacherFatigue > 70 ? angryCameoBeats : friendlyCameoBeats;
- startCameoMusic(activeCameoBeats === angryCameoBeats);
- cameoActive = true;
- cameoPlayed = true;
- cameoBeatIndex = 0;
- overlay.classList.remove('is-hidden');
- overlay.setAttribute('aria-hidden', 'false');
- hideNowPlaying();
- showFriendlyCameoBeat();
+function prepareCameo(all: boolean): void {
+  warmImages(all ? [...new Set([...friendlyCameoBeats, ...angryCameoBeats].map(beat => beat.image))] : [friendlyCameoBeats[0].image]);
+  if (all) { prepareAudio(friendlyCameoMusic); prepareAudio(angryCameoMusic); }
 }
-
-function showFriendlyCameoBeat(): void {
- const beat = activeCameoBeats[cameoBeatIndex];
- if (!beat) return;
- const image = document.getElementById('cameo-scene-image') as HTMLImageElement | null;
- const speaker = document.getElementById('cameo-speaker');
- const text = document.getElementById('cameo-dialogue-text');
- const progress = document.getElementById('cameo-progress');
- if (image) { image.src = beat.image; image.alt = beat.alt; }
- const sceneFrame = document.querySelector('.cameo-scene-frame');
- sceneFrame?.classList.toggle('cameo-angry-shake', activeCameoBeats === angryCameoBeats && cameoBeatIndex === 1);
- if (speaker) speaker.textContent = beat.speaker;
- if (text) text.textContent = beat.text;
- if (progress) progress.textContent = `КАМЕО · ${cameoBeatIndex + 1} / ${friendlyCameoBeats.length}`;
- const next = document.getElementById('cameo-next') as HTMLButtonElement | null;
- if (next) {
-   next.disabled = false;
-   next.innerHTML = cameoBeatIndex === activeCameoBeats.length - 1 ? 'ВЕРНУТЬСЯ К ЗАЧЁТУ <span>→</span>' : 'ПРОДОЛЖИТЬ <span>→</span>';
- }
+let cameoTransitioning = false;
+let cameoRenderVersion = 0;
+async function startFriendlyCameo(): Promise<void> {
+  const overlay = document.getElementById('cameo-overlay');
+  if (!overlay || cameoActive || cameoPlayed) return;
+  activeCameoBeats = teacherFatigue > 70 ? angryCameoBeats : friendlyCameoBeats;
+  cameoActive = true; cameoPlayed = true; cameoBeatIndex = 0; cameoTransitioning = true;
+  prepareCameo(true);
+  try {
+    await showFriendlyCameoBeat();
+    if (!cameoActive) return;
+    startCameoMusic(activeCameoBeats === angryCameoBeats);
+    overlay.classList.remove('is-hidden'); overlay.setAttribute('aria-hidden', 'false');
+    hideNowPlaying();
+  } finally { cameoTransitioning = false; }
 }
-
-function advanceCameo(): void {
- if (!cameoActive) return;
- if (cameoBeatIndex < activeCameoBeats.length - 1) {
-   cameoBeatIndex++;
-   showFriendlyCameoBeat();
-   return;
- }
- cameoActive = false;
- stopCameoMusicAndRestoreExam();
- const overlay = document.getElementById('cameo-overlay');
- overlay?.classList.add('is-hidden');
- overlay?.setAttribute('aria-hidden', 'true');
- // Resume the exam on the question immediately after the cameo.
- if (examQuestionIndex < 6) {
-   examQuestionIndex++;
-   examQuestionCheatStart = 0;
-   examQuestionRude = false;
-   examPhase = 'question';
-   examShowRoom('Преподавательница', examQuestions[examQuestionIndex].question, 'normal', 'normal', `ВОПРОС ${examQuestionIndex + 1} / 7`);
- }
+async function showFriendlyCameoBeat(): Promise<void> {
+  const version = ++cameoRenderVersion;
+  const beat = activeCameoBeats[cameoBeatIndex];
+  if (!beat) return;
+  const next = document.getElementById('cameo-next') as HTMLButtonElement | null;
+  if (next) next.disabled = true;
+  await readyImages([beat.image]);
+  if (!cameoActive || version !== cameoRenderVersion) return;
+  const image = document.getElementById('cameo-scene-image') as HTMLImageElement | null;
+  if (image) { await swapImage(image, beat.image); image.alt = beat.alt; }
+  if (!cameoActive || version !== cameoRenderVersion) return;
+  document.querySelector('.cameo-scene-frame')?.classList.toggle('cameo-angry-shake', activeCameoBeats === angryCameoBeats && cameoBeatIndex === 1);
+  const speaker = document.getElementById('cameo-speaker'); if (speaker) speaker.textContent = beat.speaker;
+  const text = document.getElementById('cameo-dialogue-text'); if (text) text.textContent = beat.text;
+  const progress = document.getElementById('cameo-progress'); if (progress) progress.textContent = `КАМЕО · ${cameoBeatIndex + 1} / ${activeCameoBeats.length}`;
+  warmImages(activeCameoBeats.slice(cameoBeatIndex + 1).map(nextBeat => nextBeat.image));
+  if (next) { next.disabled = false; next.innerHTML = cameoBeatIndex === activeCameoBeats.length - 1 ? 'ВЕРНУТЬСЯ К ЗАЧЁТУ <span>→</span>' : 'ПРОДОЛЖИТЬ <span>→</span>'; }
+}
+async function advanceCameo(): Promise<void> {
+  if (!cameoActive || cameoTransitioning) return;
+  cameoTransitioning = true;
+  try {
+    if (cameoBeatIndex < activeCameoBeats.length - 1) {
+      cameoBeatIndex++; await showFriendlyCameoBeat(); return;
+    }
+    cameoActive = false; stopCameoMusicAndRestoreExam();
+    const overlay = document.getElementById('cameo-overlay');
+    overlay?.classList.add('is-hidden'); overlay?.setAttribute('aria-hidden', 'true');
+    if (examQuestionIndex < 6) {
+      examQuestionIndex++; examQuestionCheatStart = 0; examQuestionRude = false; examPhase = 'question';
+      examShowRoom('Преподавательница', examQuestions[examQuestionIndex].question, 'normal', 'normal', `ВОПРОС ${examQuestionIndex + 1} / 7`);
+    }
+  } finally { cameoTransitioning = false; }
 }
 
 document.getElementById('cameo-next')?.addEventListener('click', advanceCameo);
 
 function onExamNext(): void {
+ if (cameoActive) return;
  if(examPhase==='question') {
   examPhase='thought'; examShowRoom('МЫСЛИ',examThought(),'thinking','thinking');
   const next=document.getElementById('exam-next') as HTMLButtonElement|null; if(next){next.textContent='К ЛИСТКУ →'; next.onclick=onExamNext;}
@@ -2736,7 +2749,8 @@ function buildUniversalEndingBeats(correctAnswers: number, playerName: string, i
   ];
 }
 
-function showExcellentEndingBeat(): void {
+function showExcellentEndingBeat(playCue = true): void {
+  excellentEndingPhoneSound.stop();
   const beat = excellentEndingBeats[excellentEndingIndex];
   if (!beat) return;
   const image = document.getElementById('excellent-ending-image') as HTMLImageElement | null;
@@ -2749,14 +2763,12 @@ function showExcellentEndingBeat(): void {
   warmImages(excellentEndingBeats.slice(excellentEndingIndex + 1, excellentEndingIndex + 3).map(next => next.image));
   // Play the door sound when mom enters the room, and again as the student leaves the classroom.
   const isSpecialArchetypeEnding = excellentEndingBeats[0]?.image.includes('/brave/') || excellentEndingBeats[0]?.image.includes('/trickster/') || excellentEndingBeats[0]?.image.includes('/charisma/') || excellentEndingBeats[0]?.image.includes('/analyst/') || excellentEndingBeats[0]?.image.includes('/observer/') || excellentEndingBeats[0]?.image.includes('/universal/');
-  const isBraveEnding = excellentEndingBeats[0]?.image.includes('/brave/');
-  if (isBraveEnding && excellentEndingIndex === 0) playExcellentEndingSound(braveFriendPhoneSound);
   if ((!isSpecialArchetypeEnding && excellentEndingIndex === 1) || excellentEndingIndex === (isSpecialArchetypeEnding ? 6 : 7)) playExcellentEndingSound(excellentEndingDoorSound);
   // Let the ringtone play just before the mother speaks on the phone.
-  if (excellentEndingIndex === (isBraveEnding ? 9 : isSpecialArchetypeEnding ? 8 : 9)) playExcellentEndingSound(excellentEndingPhoneSound);
   if (period) { period.textContent = beat.period === 'past' ? 'ПРОШЛОЙ НОЧЬЮ:' : beat.period === 'evening' ? 'ПРОШЛЫМ ВЕЧЕРОМ:' : ''; period.classList.toggle('is-hidden', beat.period !== 'past' && beat.period !== 'evening'); }
   if (speaker) speaker.textContent = beat.speaker;
   if (text) text.textContent = beat.text;
+  if (playCue && beat.speaker.includes('ТЕЛЕФОН')) excellentEndingPhoneSound.play();
   if (progress) progress.textContent = `КОНЦОВКА · ${excellentEndingIndex + 1} / ${excellentEndingBeats.length}`;
   scene?.classList.remove('is-fading');
 }
@@ -3194,6 +3206,7 @@ async function advanceExcellentEnding(): Promise<void> {
     // The ending is terminal: play the credits instead of revealing/resuming the exam.
     if (next) { next.disabled = true; next.textContent = 'КОНЕЦ'; next.classList.add('is-hidden'); }
     endingMusic.pause();
+    excellentEndingPhoneSound.stop();
     startEndingCredits();
     return;
   }
@@ -3201,7 +3214,8 @@ async function advanceExcellentEnding(): Promise<void> {
   if (next) next.disabled = true;
   if (excellentEndingIndex >= excellentEndingBeats.length - 3) prepareCreditsVideo();
   const current = excellentEndingBeats[excellentEndingIndex];
-  const nextReady = readyImages([excellentEndingBeats[excellentEndingIndex + 1].image]);
+  const upcoming = excellentEndingBeats[excellentEndingIndex + 1];
+  const nextReady = Promise.all([readyImages([upcoming.image]), ...(upcoming.speaker.includes('ТЕЛЕФОН') ? [excellentEndingPhoneSound.prepare()] : [])]);
   // After the flashback sequence (first three dialogue beats), hold black for 3 seconds
   // before revealing the present-day classroom.
   const isSpecialArchetypeEnding = excellentEndingBeats[0]?.image.includes('/brave/') || excellentEndingBeats[0]?.image.includes('/trickster/') || excellentEndingBeats[0]?.image.includes('/charisma/') || excellentEndingBeats[0]?.image.includes('/analyst/') || excellentEndingBeats[0]?.image.includes('/observer/') || excellentEndingBeats[0]?.image.includes('/universal/');
@@ -3249,12 +3263,13 @@ function startExcellentEnding(correctAnswers: number, endingType: 'brave' | 'tri
   excellentEndingBeats = buildExcellentEndingBeats(correctAnswers, endingType); excellentEndingIndex = 0; excellentEndingTransition = true;
   overlay.classList.add('is-blackout');
   overlay.classList.remove('is-hidden'); overlay.setAttribute('aria-hidden', 'false');
-  showExcellentEndingBeat();
+  showExcellentEndingBeat(false);
   const next = document.getElementById('excellent-ending-next') as HTMLButtonElement | null;
   if (next) { next.disabled = false; next.innerHTML = 'ДАЛЕЕ <span>→</span>'; next.onclick = () => { void advanceExcellentEnding(); }; }
   // Three seconds of black before the first frame, followed by a gentle reveal.
-  void Promise.all([wait(3000), readyImages([excellentEndingBeats[0].image])]).then(() => {
+  void Promise.all([wait(3000), readyImages([excellentEndingBeats[0].image]), excellentEndingPhoneSound.prepare()]).then(() => {
     overlay.classList.remove('is-blackout');
+    if (excellentEndingBeats[excellentEndingIndex]?.speaker.includes('ТЕЛЕФОН')) excellentEndingPhoneSound.play();
     excellentEndingTransition = false;
   });
 }

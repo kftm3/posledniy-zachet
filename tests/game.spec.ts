@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectCharacter, openTicket, monitor } from './helpers';
+import { selectCharacter, openTicket, monitor, recordCueStarts } from './helpers';
 
 test('title loads under 4 MiB and does not download hidden scenes/media', async ({ page }) => {
   const errors = monitor(page);
@@ -60,6 +60,7 @@ test('corrupted saved female preset falls back to an existing character', async 
 for (const profile of ['excellent', 'trickster'] as const) {
 test(`play through corridor, classroom, exam and ${profile} ending without broken assets`, async ({ page }) => {
   const errors = monitor(page);
+  await recordCueStarts(page);
   await openTicket(page, profile);
   await page.locator('#ticket-start').click();
   await page.locator('#intro-video-skip').click();
@@ -108,6 +109,10 @@ test(`play through corridor, classroom, exam and ${profile} ending without broke
     await page.locator('#excellent-ending-next').click();
   }
   await expect(page.locator('#ending-credits-video')).toBeVisible();
+  const cues = await page.evaluate(() => (window as any).__cueStarts);
+  expect(cues.some((cue: any) => cue.speaker === 'АРТУР' && cue.duration > 0)).toBe(true);
+  expect(cues.some((cue: any) => cue.speaker === 'КОТ' && cue.duration > 0)).toBe(true);
+  expect(cues.some((cue: any) => cue.speaker === 'МАМА · ТЕЛЕФОН' && cue.duration > 3)).toBe(true);
   // Exercise the actual media completion handler without waiting for the whole film.
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
   await expect(page.locator('#final-result-screen')).toBeVisible();

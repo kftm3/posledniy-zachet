@@ -39,3 +39,20 @@ export function monitor(page: Page) {
   return errors;
 }
 
+
+export async function recordCueStarts(page: Page) {
+  await page.addInitScript(() => {
+    (window as any).__cueStarts = [];
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (...args: any[]) {
+      const ending = document.getElementById('excellent-ending');
+      const inEnding = ending && !ending.classList.contains('is-hidden');
+      (window as any).__cueStarts.push({
+        speaker: document.getElementById(inEnding ? 'excellent-ending-speaker' : 'classmates-speaker')?.textContent,
+        duration: this.buffer?.duration,
+        offset: args[1] ?? 0,
+      });
+      return start.apply(this, args as [number, number, number]);
+    };
+  });
+}

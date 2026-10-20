@@ -1954,3 +1954,19 @@ body { background: #07122f; }
 @media (prefers-reduced-motion: reduce) {
   #screen-transition, #screen-transition.is-active { transition-duration: 0ms !important; }
 }
+
+/* A little company while the selected student's artwork is on its way. */
+.character-loading { position:fixed; z-index:2147483646; left:50%; bottom:11%; transform:translateX(-50%); width:min(560px,90vw); padding:18px 24px; border:1px solid rgba(145,205,255,.65); border-radius:16px; color:#f5faff; background:linear-gradient(135deg,rgba(6,22,57,.96),rgba(23,39,82,.96)); box-shadow:0 14px 48px rgba(0,0,0,.38),0 0 24px rgba(18,125,255,.18); text-align:center; pointer-events:none; }
+.character-loading[hidden] { display:none; }
+.character-loading p { margin:8px 0 14px; font:600 clamp(13px,1.3vw,17px)/1.5 'Segoe UI',sans-serif; }
+.character-loading-books { display:flex; justify-content:center; gap:14px; font-size:27px; height:37px; }
+.character-loading-books span { display:block; animation:student-book-hop 1.2s ease-in-out infinite; }
+.character-loading-books span:nth-child(2) { animation-delay:.16s; }
+.character-loading-books span:nth-child(3) { animation-delay:.32s; }
+.character-loading-track { height:4px; overflow:hidden; border-radius:3px; background:rgba(151,203,255,.18); }
+.character-loading-track span { display:block; width:38%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#70ccff,#b0a3ff); animation:student-loading-sweep 1.6s ease-in-out infinite; }
+.character-loading-active .asset-loading-status { visibility:hidden; }
+@keyframes student-book-hop { 0%,65%,100% { transform:translateY(0) rotate(-5deg); } 30% { transform:translateY(-7px) rotate(5deg); } }
+@keyframes student-loading-sweep { from { transform:translateX(-110%); } to { transform:translateX(370%); } }
+@media(max-height:500px) and (orientation:landscape) { .character-loading { left:36%; bottom:1.5%; padding:8px 12px; width:56vw; } .character-loading-books { display:none; } .character-loading p { margin:0 0 6px; font-size:12px; line-height:1.3; } }
+@media(prefers-reduced-motion:reduce) { .character-loading-books span,.character-loading-track span { animation:none; } .character-loading-track span { width:100%; opacity:.65; } }
