@@ -65,12 +65,12 @@ export async function readyImages(sources: readonly string[]): Promise<void> {
 }
 
 /** Do not discard buffered data by assigning the same src or calling load() again. */
-export function prepareAudio(audio: HTMLMediaElement | null, source?: string): void {
+export function prepareMedia(audio: HTMLMediaElement | null, source?: string): void {
   if (!audio) return;
   const changed = source !== undefined && audio.src !== new URL(source, document.baseURI).href;
   const cold = audio.preload === 'none';
   if (changed) audio.src = source!;
-  if (changed || cold) {
+  if (changed || cold || audio.error) {
     audio.preload = 'auto';
     // Prime enough data to start, then ask the browser to stop speculative buffering.
     // Playback ignores this hint and continues streaming normally. Never call load()
@@ -81,6 +81,8 @@ export function prepareAudio(audio: HTMLMediaElement | null, source?: string): v
     audio.load();
   }
 }
+
+export const prepareAudio = prepareMedia;
 
 const spriteRequests = new WeakMap<HTMLImageElement, string>();
 /** Keep the previous decoded emotion visible while a replacement downloads. */

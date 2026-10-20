@@ -65,9 +65,19 @@ test(`play through corridor, classroom, exam and ${profile} ending without broke
   await page.locator('#intro-video-skip').click();
   await expect(page.locator('#corridor-screen')).toBeVisible();
   let sawTricksterReaction = false;
+  let sawTeacherThought = false;
+  let sawExamThought = false;
   // Follow the visible narrative controls, including choices and random cameo.
   for (let step = 0; step < 180; step++) {
     if ((await page.locator('#exam-dialogue-text').textContent())?.includes('И никаких лишних подозрений')) sawTricksterReaction = true;
+    if (await page.locator('#teacher-intro-screen').isVisible() && await page.locator('#teacher-speaker').textContent() === 'МЫСЛИ') {
+      await expect(page.locator('#teacher-hero-sprite')).toHaveAttribute('src', /\/thinking\.webp$/);
+      sawTeacherThought = true;
+    }
+    if (await page.locator('#exam-screen').isVisible() && await page.locator('#exam-speaker').textContent() === 'МЫСЛИ') {
+      await expect(page.locator('#exam-hero-sprite')).toHaveAttribute('src', /\/thinking\.webp$/);
+      sawExamThought = true;
+    }
     if (await page.locator('#excellent-ending').isVisible()) break;
     const candidates = [
       '#cameo-next', '#corridor-choices button', '#corridor-exit', '#corridor-next',
@@ -79,7 +89,10 @@ test(`play through corridor, classroom, exam and ${profile} ending without broke
     for (const selector of candidates) {
       const button = page.locator(`${selector}:visible`).first();
       if (await button.count() && await button.isEnabled()) {
-        await button.click();
+        // A scene can finish its asynchronous transition between visibility
+        // detection and click. Retry the new scene instead of waiting on an old button.
+        try { await button.click({ timeout: 2000 }); }
+        catch (error) { if (await button.isVisible()) throw error; }
         clicked = true;
         break;
       }
@@ -87,6 +100,8 @@ test(`play through corridor, classroom, exam and ${profile} ending without broke
     await page.waitForTimeout(clicked ? 80 : 150);
   }
   if (profile === 'trickster') expect(sawTricksterReaction).toBe(true);
+  expect(sawTeacherThought).toBe(true);
+  expect(sawExamThought).toBe(true);
   await expect(page.locator('#excellent-ending')).toBeVisible();
   for (let step = 0; step < 25; step++) {
     if (await page.locator('#ending-credits-video').count()) break;

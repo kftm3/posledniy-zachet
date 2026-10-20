@@ -1,6 +1,6 @@
 import './style.css';
 import { createAudio } from './media';
-import { loadImage, warmImages, readyImages, prepareAudio, swapImage } from './asset-loading';
+import { loadImage, warmImages, readyImages, prepareAudio, prepareMedia, swapImage } from './asset-loading';
 import { gameStorage } from './storage';
 
 type Gender = 'male' | 'female';
@@ -117,7 +117,18 @@ function recordCompletedArchetype(name: string): void {
   else if (normalizeArchetypeName(first) !== current) unlockAchievement('director');
   if (current.includes('УНИВЕРСАЛ') || current.includes('UNIVERSAL')) unlockAchievement('jack-of-all-trades');
 }
-function showAchievementsPage(): void {
+const achievementAssets = [
+  '/assets/achievements/campus-background.webp', '/assets/achievements/achievement-panel.webp',
+  ...Array.from({ length: 12 }, (_, index) => `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.webp`),
+];
+const resultAssets = ['/assets/campus-background.webp', '/assets/endings/final-screen/passbook.webp'];
+let achievementsOpening = false;
+async function showAchievementsPage(): Promise<void> {
+  if (achievementsOpening || document.getElementById('achievements-page-overlay')) return;
+  achievementsOpening = true;
+  const resultScreen = document.getElementById('final-result-screen');
+  try { await readyImages(achievementAssets); } finally { achievementsOpening = false; }
+  if (!resultScreen?.isConnected) return;
   document.getElementById('achievements-page-overlay')?.remove();
   const overlay = document.createElement('div'); overlay.id = 'achievements-page-overlay';
   // Start with a brief full-screen blackout, then reveal the animated campus and panel.
@@ -310,8 +321,9 @@ function applyCharacterEmotion(emotion: string = 'normal'): void {
     if (storySprite.getAttribute('src') !== emotionSrc) {
       if (!reduceMotion) storySprite.classList.add('emotion-crossfade');
       storySprite.addEventListener('load', () => storySprite.classList.remove('emotion-crossfade'), { once: true });
-      void swapImage(storySprite, emotionSrc);
     }
+    // Always register the latest request, even when returning to the visible emotion.
+    void swapImage(storySprite, emotionSrc);
     storySprite.dataset.emotion = activeEmotion;
     if (!reduceMotion) storySprite.classList.add(motionByEmotion[activeEmotion]);
   }
@@ -698,6 +710,8 @@ function prepareCorridor(): void {
   // after the entry artwork, so a large track cannot starve the first scene's images.
   void Promise.all(firstImages.map(source => loadImage(source))).then(() => {
     if (selectedCharacterKey() !== key || corridorTrack() !== track) return;
+    warmSelectedEmotions();
+    warmImages(emotionNames.map(emotion => `/assets/characters/${corridorFriend.folder}/${emotion}.webp`));
     prepareAudio(archetypeMusic, track);
     prepareAudio(corridorAmbience);
     prepareClassroom();
@@ -841,7 +855,7 @@ function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket
     warmImages([...corridorAssets, ...classroomAssets, selectedSpritePath('thinking'), '/assets/student-ticket.webp']);
   }
   if (showSkills) renderSkills();
-  if (showTicket) { renderTicket(); prepareCorridor(); }
+  if (showTicket) { renderTicket(); prepareCorridor(); prepareMedia(document.getElementById('intro-video') as HTMLVideoElement | null); }
 }
 let selectionRenderVersion = 0;
 function renderSelection(): void {
@@ -1143,6 +1157,9 @@ function playIntroVideoBeforeCorridor(): void {
   const audioUnlock = video.play();
   if (audioUnlock && typeof audioUnlock.then === 'function') {
     void audioUnlock.then(() => {
+      // A delayed first play() may resolve after the disclaimer or after Skip.
+      // Never pause/reset the real playback when that happens.
+      if (introVideoFinished || !introVideoInProgress || disclaimer.classList.contains('is-hidden')) return;
       video.pause();
       video.currentTime = 0;
       video.muted = false;
@@ -1220,7 +1237,7 @@ function showCorridorFriend(visible: boolean, emotion: CharacterEmotion = 'norma
     const availableEmotions: CharacterEmotion[] = ['normal', 'confident', 'smile', 'thinking', 'worried'];
     const safeEmotion = availableEmotions.includes(emotion) ? emotion : 'normal';
     const nextSrc = `/assets/characters/${corridorFriend.folder}/${safeEmotion}.webp`;
-    if (sprite.getAttribute('src') !== nextSrc) void swapImage(sprite, nextSrc);
+    void swapImage(sprite, nextSrc);
     sprite.alt = `${corridorFriend.gender === 'female' ? 'Подруга' : 'Друг'} персонажа: ${safeEmotion === 'normal' ? 'обычное выражение' : safeEmotion}`;
     sprite.dataset.emotion = safeEmotion;
     // Emotion changes are instant; do not restart the sprite entrance animation.
@@ -1787,7 +1804,7 @@ function teacherEmotionForFatigue(value: number): keyof typeof teacherEmotionFil
 function updateTeacherSprite(): void {
   const sprite = document.getElementById('teacher-scene-sprite') as HTMLImageElement | null;
   if (sprite) {
-    sprite.src = teacherEmotionFiles[teacherEmotionForFatigue(teacherFatigue)];
+    void swapImage(sprite, teacherEmotionFiles[teacherEmotionForFatigue(teacherFatigue)]);
     sprite.dataset.fatigue = String(teacherFatigue);
     sprite.alt = `Преподавательница: ${teacherEmotionForFatigue(teacherFatigue)}`;
   }
@@ -1866,8 +1883,9 @@ function renderTeacherBeat(): void {
   text.textContent = beat.text;
   progress.textContent = `${teacherBeatIndex + 1} / ${teacherBeats.length}`;
   updateTeacherSprite();
-  if (hero && beat.speaker === 'Герой') {
-    hero.src = teacherPlayerSpriteSrc(beat.emotion);
+  if (hero && teacherChoiceMade) {
+    void swapImage(hero, teacherPlayerSpriteSrc(beat.emotion));
+    hero.dataset.emotion = beat.emotion;
     hero.classList.remove('is-hidden');
     hero.alt = selection.gender === 'female' ? 'Главная героиня' : 'Главный герой';
   }
@@ -2060,14 +2078,15 @@ function examChangeKnowledge(delta:number): string {
 function examFatigue(delta:number): void { teacherFatigue=Math.max(0,Math.min(100,teacherFatigue+delta)); if(teacherFatigue>=100) unlockAchievement('teacher-patience'); updateExamTeacherSprite(); window.dispatchEvent(new CustomEvent('game:teacher-state-updated',{detail:{fatigue:teacherFatigue,relationship:teacherRelationship,emotion:teacherEmotionForFatigue(teacherFatigue)}})); }
 function updateExamTeacherSprite(): void {
  const sprite=document.getElementById('exam-teacher-sprite') as HTMLImageElement|null;
- if(sprite) sprite.src=teacherEmotionFiles[teacherEmotionForFatigue(teacherFatigue)];
+ if(sprite) void swapImage(sprite, teacherEmotionFiles[teacherEmotionForFatigue(teacherFatigue)]);
 }
 function updateExamHeroSprite(emotion:string): void {
  const hero=document.getElementById('exam-hero-sprite') as HTMLImageElement|null;
  if(!hero) return;
  const valid=['normal','smile','worried','thinking','confident'];
  const e=valid.includes(emotion)?emotion:((emotion==='surprised'||emotion==='angry')?'worried':'normal');
- hero.src=teacherPlayerSpriteSrc(e as CharacterEmotion);
+ void swapImage(hero, teacherPlayerSpriteSrc(e as CharacterEmotion));
+ hero.dataset.emotion=e;
  hero.alt=selection.gender==='female'?'Главная героиня':'Главный герой';
 }
 function examShowRoom(speaker:string,text:string,_emotion='normal',heroEmotion?:string,progressText?:string): void {
@@ -2082,7 +2101,7 @@ function examShowRoom(speaker:string,text:string,_emotion='normal',heroEmotion?:
  const textEl=document.getElementById('exam-dialogue-text'); if(textEl) textEl.textContent=text;
  const progress=document.getElementById('exam-progress'); if(progress) progress.textContent=progressText || `ВОПРОС ${Math.min(examQuestionIndex+1,7)} / 7`;
  const teacher=document.getElementById('exam-teacher-sprite'); teacher?.classList.remove('is-hidden');
- const hero=document.getElementById('exam-hero-sprite'); if(hero) { updateExamHeroSprite(heroEmotion || 'normal'); hero.classList.remove('is-hidden'); }
+ const hero=document.getElementById('exam-hero-sprite'); if(hero) { updateExamHeroSprite(heroEmotion ?? hero.dataset.emotion ?? 'normal'); hero.classList.remove('is-hidden'); }
  updateExamTeacherSprite();
  const next=document.getElementById('exam-next') as HTMLButtonElement|null;
  if(next) { next.classList.remove('is-hidden'); next.disabled=false; next.textContent=examPhase==='finished'?'ЗАВЕРШИТЬ СЦЕНУ':'ДАЛЬШЕ →'; next.onclick=onExamNext; }
@@ -2219,7 +2238,7 @@ function answerExamQuestion(index:number): void {
 }
 function showExamFeedbackLine(): void {
  const line=examFeedbackLines[examFeedbackIndex]; if(!line) return;
- examShowRoom(line.speaker,line.text,line.emotion,line.speaker==='Герой'?(line.emotion==='confident'?'confident':line.emotion==='worried'?'worried':'thinking'):undefined,`ВОПРОС ${examQuestionIndex+1} / 7 · РЕАКЦИЯ`);
+ examShowRoom(line.speaker,line.text,line.emotion,line.speaker==='Герой'||line.speaker==='МЫСЛИ'?line.emotion:undefined,`ВОПРОС ${examQuestionIndex+1} / 7 · РЕАКЦИЯ`);
  const next=document.getElementById('exam-next') as HTMLButtonElement|null;
  if(next) { next.textContent=examFeedbackIndex===examFeedbackLines.length-1?(examQuestionIndex===6?'К РЕЗУЛЬТАТАМ →':'СЛЕДУЮЩИЙ ВОПРОС →'):'ДАЛЬШЕ →'; next.onclick=onExamNext; }
 }
@@ -2800,18 +2819,22 @@ function showExcellentEndingBeat(): void {
 }
 let endingCreditsOverlay: HTMLDivElement | null = null;
 let endingCreditsTimer: number | null = null;
-function finishEndingCredits(watchedToEnd = false): void {
+let creditsFinishing = false;
+async function finishEndingCredits(watchedToEnd = false): Promise<void> {
+  if (creditsFinishing || !endingCreditsOverlay) return;
+  creditsFinishing = true;
   if (endingCreditsTimer !== null) {
     window.clearTimeout(endingCreditsTimer);
     endingCreditsTimer = null;
   }
-  if (!endingCreditsOverlay) return;
   if (watchedToEnd) unlockAchievement('credits-respect');
   const creditsVideo = endingCreditsOverlay.querySelector('video');
-  if (creditsVideo) { creditsVideo.pause(); try { creditsVideo.currentTime = 0; } catch { /* ignore media teardown */ } }
+  if (creditsVideo) { creditsVideo.pause(); creditsVideo.autoplay = false; creditsVideo.removeAttribute('src'); creditsVideo.load(); }
+  await readyImages(resultAssets);
   endingCreditsOverlay.remove();
   endingCreditsOverlay = null;
   showFinalResultScreen();
+  creditsFinishing = false;
 }
 
 function formatRunDuration(durationMs: number): string {
@@ -2833,6 +2856,7 @@ function ensureFinalResultMotionStyles(): void {
 }
 
 function showFinalResultScreen(): void {
+  warmImages(achievementAssets);
   ensureFinalResultMotionStyles();
   unlockAchievement('the-end');
   const finalArchetypeName = lockedArchetype?.name || getArchetype().name;
@@ -3139,6 +3163,18 @@ function showFinalResultScreen(): void {
   document.body.appendChild(buttons);
   requestAnimationFrame(() => { overlay.style.opacity = '1'; });
 }
+let preparedCreditsVideo: HTMLVideoElement | null = null;
+function prepareCreditsVideo(): HTMLVideoElement {
+  if (!preparedCreditsVideo) {
+    preparedCreditsVideo = document.createElement('video');
+    preparedCreditsVideo.id = 'ending-credits-video';
+    preparedCreditsVideo.preload = 'none';
+    preparedCreditsVideo.playsInline = true;
+    preparedCreditsVideo.src = '/assets/endings/credits.mp4';
+  }
+  prepareMedia(preparedCreditsVideo);
+  return preparedCreditsVideo;
+}
 function startEndingCredits(): void {
   // Tear down stale DOM and timers without invoking the final-result screen transition.
   if (endingCreditsTimer !== null) { window.clearTimeout(endingCreditsTimer); endingCreditsTimer = null; }
@@ -3155,13 +3191,13 @@ function startEndingCredits(): void {
     position: 'fixed', inset: '0', zIndex: '2147483000', background: '#000',
     display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
   });
-  const video = document.createElement('video');
-  video.id = 'ending-credits-video';
-  video.src = '/assets/endings/credits.mp4';
+  const video = prepareCreditsVideo();
+  preparedCreditsVideo = null;
+  warmImages([...resultAssets, ...achievementAssets]);
   video.autoplay = true;
   video.controls = false;
   video.playsInline = true;
-  video.preload = 'none';
+  // Keep the buffer prepared during the ending.
   // Play the supplied credits video with its original audio.
   video.muted = false;
   video.volume = 1.0;
@@ -3218,6 +3254,7 @@ async function advanceExcellentEnding(): Promise<void> {
   }
   excellentEndingTransition = true;
   if (next) next.disabled = true;
+  if (excellentEndingIndex >= excellentEndingBeats.length - 3) prepareCreditsVideo();
   const current = excellentEndingBeats[excellentEndingIndex];
   const nextReady = readyImages([excellentEndingBeats[excellentEndingIndex + 1].image]);
   // After the flashback sequence (first three dialogue beats), hold black for 3 seconds
@@ -3253,6 +3290,7 @@ async function advanceExcellentEnding(): Promise<void> {
   if (next) next.disabled = false;
 }
 function startExcellentEnding(correctAnswers: number, endingType: 'brave' | 'trickster' | 'charisma' | 'analyst' | 'observer' | 'universal' | 'excellent' = 'excellent'): void {
+  warmImages([...resultAssets, ...achievementAssets]);
   endingRunDurationMs = corridorRunStartedAt > 0 ? Math.max(0, Date.now() - corridorRunStartedAt) : 0;
   const overlay = document.getElementById('excellent-ending');
   if (!overlay) return;

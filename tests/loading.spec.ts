@@ -105,3 +105,96 @@ test('classroom music is prepared during corridor dialogue once its background i
   expect(requests.findIndex(path => path.endsWith('/classroom-last-exam-background.webp')))
     .toBeLessThan(requests.findIndex(path => path.endsWith('/C418-Aria_Math.mp3')));
 });
+
+test('corridor follows each dialogue emotion and cancels a stale replacement', async ({ page }) => {
+  let release!: () => void;
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/student_boy1/smile.webp', async route => { await delayed; await route.continue(); });
+  await openTicket(page);
+  await page.locator('#ticket-start').click();
+  await page.locator('#intro-video-skip').click();
+  const hero = page.locator('#corridor-character-sprite');
+  await expect(hero).toHaveAttribute('src', /\/thinking\.webp$/);
+  await page.locator('#corridor-next').click(); // Smile is still downloading.
+  await expect(hero).toHaveAttribute('data-emotion', 'smile');
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:dialogue-line', { detail: { emotion: 'thinking' } })));
+  release();
+  await page.waitForTimeout(500);
+  await expect(hero).toHaveAttribute('src', /\/thinking\.webp$/);
+  for (const emotion of ['confident', 'worried', 'thinking']) {
+    await page.locator('#corridor-next').click();
+    await expect(hero).toHaveAttribute('src', new RegExp(`/${emotion}\\.webp$`));
+    await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  }
+});
+
+test('a delayed intro play promise cannot pause the real video after the disclaimer', async ({ page }) => {
+  await page.addInitScript(() => {
+    const play = HTMLMediaElement.prototype.play;
+    let firstIntro = true;
+    (window as any).__releaseIntroPlay = undefined;
+    HTMLMediaElement.prototype.play = function () {
+      if (this.id === 'intro-video' && firstIntro) {
+        firstIntro = false;
+        return new Promise<void>(resolve => { (window as any).__releaseIntroPlay = resolve; });
+      }
+      return play.call(this);
+    };
+  });
+  await openTicket(page);
+  await expect.poll(() => page.locator('#intro-video').evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThanOrEqual(2);
+  await page.locator('#ticket-start').click();
+  await expect(page.locator('#intro-video-overlay')).toBeVisible();
+  await expect.poll(() => page.locator('#intro-video').evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
+  await page.evaluate(() => (window as any).__releaseIntroPlay());
+  await page.waitForTimeout(300);
+  await expect.poll(() => page.locator('#intro-video').evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
+  await page.locator('#intro-video-skip').click();
+  await expect(page.locator('#intro-video')).toHaveAttribute('preload', 'none');
+});
+
+test('results and achievements are prepared before opening and wait for slow artwork', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', req => requests.push(new URL(req.url()).pathname));
+  await page.addInitScript(() => {
+    const load = HTMLMediaElement.prototype.load;
+    (window as any).__creditsLoads = [];
+    HTMLMediaElement.prototype.load = function () {
+      if (this.id === 'ending-credits-video') (window as any).__creditsLoads.push({ attached: this.isConnected, source: this.src });
+      return load.call(this);
+    };
+  });
+  let releaseBook!: () => void;
+  let releaseAchievements!: () => void;
+  const book = new Promise<void>(resolve => { releaseBook = resolve; });
+  const achievements = new Promise<void>(resolve => { releaseAchievements = resolve; });
+  await selectCharacter(page);
+  await page.route('**/final-screen/passbook.webp', async route => { await book; await route.continue(); });
+  await page.route('**/achievements/achievement-panel.webp', async route => { await achievements; await route.continue(); });
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:exam-scene-finished', { detail: { correct: 6, isExcellentEnding: true } })));
+  await expect.poll(() => requests.some(path => path.endsWith('/final-screen/passbook.webp'))).toBe(true);
+  await expect(page.locator('#final-result-screen')).toHaveCount(0);
+  // Release the result book before the 15s network timeout; the slow achievements
+  // remain independent of the result screen and credits playback.
+  releaseBook();
+  for (let i = 0; i < 25; i++) {
+    if (await page.locator('#ending-credits-video').count()) break;
+    await page.locator('#excellent-ending-next').click();
+  }
+  await expect(page.locator('#ending-credits-video')).toBeVisible();
+  await expect.poll(() => requests.some(path => path.endsWith('/achievements/achievement-panel.webp'))).toBe(true);
+  const loads = await page.evaluate(() => (window as any).__creditsLoads);
+  expect(loads).toHaveLength(1);
+  expect(loads[0].attached).toBe(false);
+  await page.locator('#ending-credits-video').evaluate(v => v.dispatchEvent(new Event('ended')));
+  await expect(page.locator('#final-result-screen')).toBeVisible();
+  await expect.poll(() => page.locator('#final-result-screen img').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  await page.getByRole('button', { name: 'ДОСТИЖЕНИЯ', exact: true }).click();
+  await expect(page.locator('#asset-loading-status')).toBeVisible();
+  await expect(page.locator('#achievements-page-overlay')).toHaveCount(0);
+  releaseAchievements();
+  await expect(page.locator('#achievements-page-overlay')).toBeVisible();
+  await expect.poll(() => page.locator('#achievements-page-overlay img').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  await page.getByRole('button', { name: 'НАЗАД', exact: true }).click();
+  await expect(page.locator('#final-result-screen')).toBeVisible();
+});
