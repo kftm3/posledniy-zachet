@@ -26,13 +26,8 @@ function fixGitHubPagesPublicPaths(): Plugin {
   }
 }
 
-export default defineConfig(({ command, mode }) => ({
-  // Локальная разработка работает от корня,
-  // предпросмотр production-сборки и GitHub Pages — с префиксом репозитория.
-  base:
-    command === 'serve' && mode !== 'production'
-      ? '/'
-      : repositoryBase,
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/' : '/posledniy-zachet/',
 
   plugins: [fixGitHubPagesPublicPaths()],
 }))
