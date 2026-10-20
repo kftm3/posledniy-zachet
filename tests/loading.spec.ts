@@ -115,13 +115,13 @@ test('corridor follows each dialogue emotion and cancels a stale replacement', a
   await page.locator('#intro-video-skip').click();
   const hero = page.locator('#corridor-character-sprite');
   await expect(hero).toHaveAttribute('src', /\/thinking\.webp$/);
-  await page.locator('#corridor-next').click(); // Smile is still downloading.
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:dialogue-line', { detail: { emotion: 'smile' } })));
   await expect(hero).toHaveAttribute('data-emotion', 'smile');
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:dialogue-line', { detail: { emotion: 'thinking' } })));
   release();
   await page.waitForTimeout(500);
   await expect(hero).toHaveAttribute('src', /\/thinking\.webp$/);
-  for (const emotion of ['confident', 'worried', 'thinking']) {
+  for (const emotion of ['smile', 'confident', 'worried', 'thinking']) {
     await page.locator('#corridor-next').click();
     await expect(hero).toHaveAttribute('src', new RegExp(`/${emotion}\\.webp$`));
     await expect.poll(() => hero.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
@@ -164,6 +164,9 @@ test('results and achievements are prepared before opening and wait for slow art
       return load.call(this);
     };
   });
+  let releaseIcon!: () => void;
+  const slowIcon = new Promise<void>(resolve => { releaseIcon = resolve; });
+  await page.route('**/achievements/icons/achievement-01.webp', async route => { await slowIcon; await route.continue(); });
   let releaseBook!: () => void;
   let releaseAchievements!: () => void;
   const book = new Promise<void>(resolve => { releaseBook = resolve; });
@@ -194,6 +197,9 @@ test('results and achievements are prepared before opening and wait for slow art
   await expect(page.locator('#achievements-page-overlay')).toHaveCount(0);
   releaseAchievements();
   await expect(page.locator('#achievements-page-overlay')).toBeVisible();
+  const slowArtwork = page.locator('#achievements-page-overlay img[src$="achievement-01.webp"]');
+  expect(await slowArtwork.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(false);
+  releaseIcon();
   await expect.poll(() => page.locator('#achievements-page-overlay img').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
   await page.getByRole('button', { name: 'НАЗАД', exact: true }).click();
   await expect(page.locator('#final-result-screen')).toBeVisible();

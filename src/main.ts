@@ -1,4 +1,5 @@
 import './style.css';
+import { coverScene, revealScene, transitionScene } from './transitions';
 import { createAudio } from './media';
 import { loadImage, warmImages, readyImages, prepareAudio, prepareMedia, swapImage } from './asset-loading';
 import { gameStorage } from './storage';
@@ -127,7 +128,7 @@ async function showAchievementsPage(): Promise<void> {
   if (achievementsOpening || document.getElementById('achievements-page-overlay')) return;
   achievementsOpening = true;
   const resultScreen = document.getElementById('final-result-screen');
-  try { await readyImages(achievementAssets); } finally { achievementsOpening = false; }
+  try { await readyImages(achievementAssets.slice(0, 2)); } finally { achievementsOpening = false; }
   if (!resultScreen?.isConnected) return;
   document.getElementById('achievements-page-overlay')?.remove();
   const overlay = document.createElement('div'); overlay.id = 'achievements-page-overlay';
@@ -186,6 +187,12 @@ async function showAchievementsPage(): Promise<void> {
       const iconImage = document.createElement('img');
       iconImage.src = `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.webp`;
       iconImage.alt = '';
+      iconImage.decoding = 'async';
+      iconSlot.textContent = achievement.icon;
+      iconSlot.style.fontSize = 'clamp(16px, 2vw, 32px)';
+      iconImage.style.position = 'absolute';
+      iconImage.onload = () => { if (iconSlot.firstChild?.nodeType === Node.TEXT_NODE) iconSlot.firstChild.remove(); };
+      iconImage.onerror = () => iconImage.remove();
       Object.assign(iconImage.style, { display: 'block', width: '88%', height: '88%', objectFit: 'contain', objectPosition: 'center', flex: '0 0 auto', pointerEvents: 'none' });
       iconSlot.appendChild(iconImage);
     }
@@ -698,11 +705,14 @@ function corridorTrack(): string {
   const archetypeName = getArchetype().name.toLocaleUpperCase('ru-RU');
   return isDevilPresetSelected() ? '/audio/easter-eggs/devil-corridor.mp3' : isSecretPresetSelected() ? '/audio/easter-eggs/welcome-to-san-andreas.mp3' : (ARCHETYPE_TRACKS[archetypeName] ?? ARCHETYPE_TRACKS['УНИВЕРСАЛ']);
 }
-function prepareCorridor(): void {
+function prepareFriend(): void {
   if (preparedFriendFor !== selectedCharacterKey()) {
     corridorFriend = chooseCorridorFriend();
     preparedFriendFor = selectedCharacterKey();
   }
+}
+function prepareCorridor(): void {
+  prepareFriend();
   const key = selectedCharacterKey();
   const track = corridorTrack();
   const firstImages = [...corridorAssets, selectedSpritePath('thinking'), `/assets/characters/${corridorFriend.folder}/thinking.webp`];
@@ -852,9 +862,11 @@ function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket
   }
   if (showInput) {
     // Prepare the first playable scene before speculative alternate emotions.
-    warmImages([...corridorAssets, ...classroomAssets, selectedSpritePath('thinking'), '/assets/student-ticket.webp']);
+    prepareFriend();
+    warmImages([...corridorAssets, selectedSpritePath('thinking'), `/assets/characters/${corridorFriend.folder}/thinking.webp`, ...classroomAssets, '/assets/student-ticket.webp']);
+    warmImages(['smile', 'confident', 'worried', 'normal'].flatMap(emotion => [selectedSpritePath(emotion as CharacterEmotion), `/assets/characters/${corridorFriend.folder}/${emotion}.webp`]));
   }
-  if (showSkills) renderSkills();
+  if (showSkills) { renderSkills(); prepareMedia(document.getElementById('intro-video') as HTMLVideoElement | null); }
   if (showTicket) { renderTicket(); prepareCorridor(); prepareMedia(document.getElementById('intro-video') as HTMLVideoElement | null); }
 }
 let selectionRenderVersion = 0;
@@ -953,22 +965,8 @@ startButton?.addEventListener('click', async () => {
   isTransitioning = true;
   startButton.disabled = true;
 
-  const selectionReady = readyImages([...selectionAssets, selectedSpritePath()]);
-  // Fade to dark for half a second, switch screens underneath, then reveal the new screen.
-  transitionOverlay?.classList.add('is-active');
-  await Promise.all([wait(500), selectionReady]);
+  await transitionScene(() => showScreen('character'), [...selectionAssets, selectedSpritePath()]);
 
-  characterScreen?.classList.add('screen-entering');
-  showScreen('character');
-  // Let the browser paint the hidden/zoomed starting state before revealing the selection screen.
-  // A double RAF avoids the one-frame snap that occurred when the entering class was removed too early.
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  characterScreen?.classList.remove('screen-entering');
-  // Keep the dark overlay through the first part of the screen's fade/scale transition.
-  await wait(90);
-  transitionOverlay?.classList.remove('is-active');
-
-  await wait(650);
   startButton.disabled = false;
   isTransitioning = false;
 });
@@ -978,40 +976,23 @@ continueButton?.addEventListener('click', async () => {
   saveSelection();
   window.dispatchEvent(new CustomEvent('game:character-selected', { detail: { ...selection } }));
   isTransitioning = true;
-  transitionOverlay?.classList.add('is-active');
-  await wait(500);
-  showScreen('input');
-  syncSecretIdentity();
-  inputScreen?.classList.add('screen-entering');
-  requestAnimationFrame(() => {
-    inputScreen?.classList.remove('screen-entering');
-    transitionOverlay?.classList.remove('is-active');
-  });
-  await wait(500);
+  await transitionScene(() => { showScreen('input'); syncSecretIdentity(); }, ['/assets/input_screen_background.webp', '/assets/notebook_form_transparent.webp']);
   isTransitioning = false;
 });
 
 inputBackButton?.addEventListener('click', async () => {
   if (isTransitioning) return;
   isTransitioning = true;
-  transitionOverlay?.classList.add('is-active');
-  await wait(500);
-  showScreen('character');
-  characterScreen?.classList.add('screen-entering');
-  requestAnimationFrame(() => {
-    characterScreen?.classList.remove('screen-entering');
-    transitionOverlay?.classList.remove('is-active');
-  });
-  await wait(500);
+  await transitionScene(() => showScreen('character'), [...selectionAssets, selectedSpritePath()]);
   isTransitioning = false;
 });
 
-skillsBack?.addEventListener('click', async () => { if(isTransitioning)return;isTransitioning=true;transitionOverlay?.classList.add('is-active');await wait(500);showScreen('input');inputScreen?.classList.add('screen-entering');requestAnimationFrame(()=>{inputScreen?.classList.remove('screen-entering');transitionOverlay?.classList.remove('is-active');});await wait(500);isTransitioning=false;});
+skillsBack?.addEventListener('click', async () => { if(isTransitioning)return; isTransitioning=true; try { await transitionScene(() => showScreen('input')); } finally { isTransitioning=false; } });
 document.querySelectorAll<HTMLElement>('.skill-card').forEach(card=>{
  const key=card.dataset.skill as SkillKey;
  card.querySelectorAll<HTMLButtonElement>('[data-delta]').forEach(button=>button.addEventListener('click',()=>{const delta=Number(button.dataset.delta)||0;if(delta>0&&(skills[key]>=4||totalSkills()>=10))return;skills[key]=Math.max(0,Math.min(4,skills[key]+delta));renderSkills();}));
 });
-skillsContinue?.addEventListener('click',()=>{if(skillsContinue.disabled)return;gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills));window.dispatchEvent(new CustomEvent('game:skills-confirmed',{detail:{...skills,archetype:getArchetype().name}}));if(isTransitioning)return;isTransitioning=true;transitionOverlay?.classList.add('is-active');void(async()=>{await wait(500);showScreen('ticket');ticketScreen?.classList.add('screen-entering');requestAnimationFrame(()=>{ticketScreen?.classList.remove('screen-entering');transitionOverlay?.classList.remove('is-active');});await wait(500);isTransitioning=false;})();});
+skillsContinue?.addEventListener('click', async () => { if(skillsContinue.disabled || isTransitioning)return; gameStorage.setItem(SKILLS_KEY,JSON.stringify(skills)); window.dispatchEvent(new CustomEvent('game:skills-confirmed',{detail:{...skills,archetype:getArchetype().name}})); isTransitioning=true; try { await transitionScene(() => showScreen('ticket'), ['/assets/student-ticket.webp']); } finally { isTransitioning=false; } });
 
 playerForm?.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -1026,7 +1007,7 @@ playerForm?.addEventListener('submit', (event) => {
   gameStorage.setItem('last-exam-player-data', JSON.stringify(player));
   window.dispatchEvent(new CustomEvent('game:player-data-entered', { detail: player }));
   if (inputToast) { inputToast.textContent = 'Данные сохранены!'; inputToast.classList.add('is-visible'); window.setTimeout(() => inputToast.classList.remove('is-visible'), 1200); }
-  if (!isTransitioning) { isTransitioning=true; transitionOverlay?.classList.add('is-active'); void (async()=>{await wait(500);showScreen('skills');skillsScreen?.classList.add('screen-entering');requestAnimationFrame(()=>{skillsScreen?.classList.remove('screen-entering');transitionOverlay?.classList.remove('is-active');});await wait(500);isTransitioning=false;})(); }
+  if (!isTransitioning) { isTransitioning=true; void transitionScene(() => showScreen('skills')).finally(() => { isTransitioning=false; }); }
 });
 
 document.addEventListener('keydown', (event) => {
@@ -1109,7 +1090,7 @@ document.querySelectorAll<HTMLElement>('.selector-panel').forEach((panel) => {
   });
 });
 
-document.getElementById('ticket-back')?.addEventListener('click',()=>{if(isTransitioning)return;isTransitioning=true;transitionOverlay?.classList.add('is-active');void(async()=>{await wait(500);showScreen('skills');skillsScreen?.classList.add('screen-entering');requestAnimationFrame(()=>{skillsScreen?.classList.remove('screen-entering');transitionOverlay?.classList.remove('is-active');});await wait(500);isTransitioning=false;})();});
+document.getElementById('ticket-back')?.addEventListener('click', async () => { if(isTransitioning)return; isTransitioning=true; try { await transitionScene(() => showScreen('skills')); } finally { isTransitioning=false; } });
 let introVideoInProgress = false;
 let introVideoFinished = false;
 
@@ -1117,7 +1098,6 @@ function finishIntroVideoAndEnterCorridor(): void {
   if (introVideoFinished) return;
   introVideoFinished = true;
   introVideoInProgress = false;
-  const overlay = document.getElementById('intro-video-overlay');
   const video = document.getElementById('intro-video') as HTMLVideoElement | null;
   if (video) {
     video.pause();
@@ -1126,8 +1106,6 @@ function finishIntroVideoAndEnterCorridor(): void {
     video.preload = 'none';
     video.load();
   }
-  overlay?.classList.add('is-hidden');
-  overlay?.setAttribute('aria-hidden', 'true');
   window.dispatchEvent(new CustomEvent('game:start-requested',{detail:{selection,skills,archetype:getArchetype().name,scene:'first-scene'}}));
   void beginCorridorScene();
 }
@@ -1228,16 +1206,20 @@ function chooseCorridorFriend(): FriendPreset {
   const pool = candidates.length > 0 ? candidates : available;
   return pool[Math.floor(Math.random() * pool.length)];
 }
-function showCorridorFriend(visible: boolean, emotion: CharacterEmotion = 'normal'): void {
+let friendRenderVersion = 0;
+async function showCorridorFriend(visible: boolean, emotion: CharacterEmotion = 'normal'): Promise<void> {
+  const version = ++friendRenderVersion;
   const sprite = document.getElementById('corridor-friend-sprite') as HTMLImageElement | null;
   if (!sprite) return;
-  sprite.classList.toggle('is-hidden', !visible);
-  sprite.setAttribute('aria-hidden', String(!visible));
+  if (!visible) { sprite.classList.add('is-hidden'); sprite.setAttribute('aria-hidden', 'true'); return; }
   if (visible) {
     const availableEmotions: CharacterEmotion[] = ['normal', 'confident', 'smile', 'thinking', 'worried'];
     const safeEmotion = availableEmotions.includes(emotion) ? emotion : 'normal';
     const nextSrc = `/assets/characters/${corridorFriend.folder}/${safeEmotion}.webp`;
-    void swapImage(sprite, nextSrc);
+    await swapImage(sprite, nextSrc);
+    if (version !== friendRenderVersion) return;
+    sprite.classList.remove('is-hidden');
+    sprite.setAttribute('aria-hidden', 'false');
     sprite.alt = `${corridorFriend.gender === 'female' ? 'Подруга' : 'Друг'} персонажа: ${safeEmotion === 'normal' ? 'обычное выражение' : safeEmotion}`;
     sprite.dataset.emotion = safeEmotion;
     // Emotion changes are instant; do not restart the sprite entrance animation.
@@ -1304,7 +1286,7 @@ function corridorBranch(): CorridorBeat[] {
     {text:`Мысли: «${closing}»`,emotion:'thinking'}
   ];
 }
-function renderCorridorBeat(): void {
+async function renderCorridorBeat(): Promise<void> {
   const text=document.getElementById('corridor-dialogue-text');
   const progress=document.getElementById('corridor-progress');
   const next=document.getElementById('corridor-next') as HTMLButtonElement|null;
@@ -1315,6 +1297,8 @@ function renderCorridorBeat(): void {
   const setSpeaker=(label:string)=>{if(!speaker)return;speaker.textContent=label.toLocaleUpperCase('ru-RU');speaker.title=label;speaker.classList.toggle('is-long-name',label.length>7);};
   if(corridorIndex<corridorBeats.length){
     const beat=corridorBeats[corridorIndex];
+    next.disabled = true;
+    await readyImages([selectedSpritePath(beat.emotion), `/assets/characters/${corridorFriend.folder}/${beat.emotion}.webp`]);
     let line=beat.text;
     if(line.startsWith('Мысли:')){setSpeaker(corridorPlayerName());line=line.replace(/^Мысли:\s*/, '');}
     else if(line.startsWith('Друг:') || line.startsWith('Подруга:')){setSpeaker(corridorFriend.gender === 'female' ? 'Подруга' : 'Друг');line=line.replace(/^(Друг|Подруга):\s*/, '');}
@@ -1324,7 +1308,8 @@ function renderCorridorBeat(): void {
     progress.textContent=`${corridorIndex+1} / ${corridorBeats.length}`;
     applyCharacterEmotion(beat.emotion);
     // Keep the companion on screen throughout the dialogue and mirror their expression to the scene beat.
-    showCorridorFriend(true, beat.emotion);
+    await showCorridorFriend(true, beat.emotion);
+    next.disabled = false;
     next.textContent='ДАЛЬШЕ →';
     choices.classList.add('is-hidden'); exit?.classList.add('is-hidden');
   } else if(!corridorChoiceMade){
@@ -1357,30 +1342,24 @@ async function beginCorridorScene(): Promise<void> {
   // Start the archetype track while the transition is fully black.
   startArchetypeMusic();
   fadeOutIntroMusic(1200);
-  transitionOverlay?.classList.add('is-active', 'is-black-intro');
-  transitionOverlay?.setAttribute('aria-hidden', 'false');
-  // Overlap the short fade with actual asset readiness; no unconditional two-second hold.
-  await Promise.all([wait(250), corridorReady]);
+  await corridorReady;
+  await coverScene();
+  const introOverlay = document.getElementById('intro-video-overlay');
+  introOverlay?.classList.add('is-hidden'); introOverlay?.setAttribute('aria-hidden', 'true');
   showScreen('corridor');
   // Run duration starts at the first visible corridor scene, not during the intro.
   corridorRunStartedAt = Date.now();
   const corridorScreen = document.getElementById('corridor-screen');
   corridorScreen?.classList.remove('corridor-scene-entered');
-  renderCorridorBeat();
+  await renderCorridorBeat();
   prepareClassroom();
   warmSelectedEmotions();
   warmImages(emotionNames.map(emotion => `/assets/characters/${corridorFriend.folder}/${emotion}.webp`));
-  // Allow the corridor to paint beneath the overlay before beginning a slower reveal.
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   corridorScreen?.classList.add('corridor-scene-entered');
-  transitionOverlay?.classList.add('is-revealing');
-  transitionOverlay?.classList.remove('is-active', 'is-black-intro');
-  await wait(1350);
-  transitionOverlay?.classList.remove('is-revealing');
-  transitionOverlay?.setAttribute('aria-hidden', 'true');
+  await revealScene();
 }
 document.getElementById('corridor-next')?.addEventListener('click',()=>{
-  if(corridorIndex<corridorBeats.length){corridorIndex++;renderCorridorBeat();}
+  if(corridorIndex<corridorBeats.length && !(document.getElementById('corridor-next') as HTMLButtonElement).disabled){corridorIndex++;void renderCorridorBeat();}
 });
 document.querySelectorAll<HTMLButtonElement>('#corridor-choices [data-choice]').forEach(button=>{
   button.addEventListener('click',()=>{
@@ -1507,20 +1486,7 @@ document.getElementById('corridor-exit')?.addEventListener('click', async (event
   corridorExitInProgress = true;
   exitButton.disabled = true;
   exitButton.setAttribute('aria-busy', 'true');
-  const overlay = document.getElementById('screen-transition');
-  overlay?.classList.remove('is-revealing', 'is-black-intro');
-  overlay?.setAttribute('aria-hidden', 'false');
-  // Fade to black first; the next scene and the audio crossfade happen under the overlay.
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  overlay?.classList.add('is-active');
-  await wait(520);
-  await beginClassroomIntro();
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  overlay?.classList.add('is-revealing');
-  overlay?.classList.remove('is-active');
-  await wait(1200);
-  overlay?.classList.remove('is-revealing');
-  overlay?.setAttribute('aria-hidden', 'true');
+  await transitionScene(beginClassroomIntro, classroomAssets);
   exitButton.disabled = false;
   exitButton.removeAttribute('aria-busy');
   corridorExitInProgress = false;
@@ -1613,16 +1579,14 @@ function renderGalleryBeat(): void {
 async function beginClassroomGallery(): Promise<void> {
   if (isTransitioning) return;
   isTransitioning = true;
-  await readyImages(['/assets/classroom-wall-gallery-background.jpeg']);
-  galleryBeats = buildGalleryBeats();
-  galleryIndex = 0;
-  showScreen('classroom-gallery');
-  isTransitioning = false;
-  warmImages(['/assets/classroom-classmates-background.jpeg']);
-  const screen = document.getElementById('classroom-gallery-screen');
-  screen?.classList.remove('gallery-entered');
-  renderGalleryBeat();
-  requestAnimationFrame(() => requestAnimationFrame(() => screen?.classList.add('gallery-entered')));
+  try {
+    await transitionScene(() => {
+      galleryBeats = buildGalleryBeats(); galleryIndex = 0;
+      showScreen('classroom-gallery'); renderGalleryBeat();
+      document.getElementById('classroom-gallery-screen')?.classList.add('gallery-entered');
+    }, ['/assets/classroom-wall-gallery-background.jpeg']);
+    warmImages(['/assets/classroom-classmates-background.jpeg']);
+  } finally { isTransitioning = false; }
 }
 // v67.15 — classmates scene, cat callback and male preset 3 easter egg.
 type ClassmatesBeat = { speaker: string; text: string; emotion: CharacterEmotion };
@@ -1745,31 +1709,16 @@ function renderClassmatesBeat(): void {
   next.onclick = () => { classmatesIndex++; renderClassmatesBeat(); };
 }
 async function transitionToClassmatesScene(): Promise<void> {
-  const overlay = document.getElementById('screen-transition');
   if (isTransitioning) return;
   isTransitioning = true;
-  overlay?.classList.remove('is-revealing');
-  overlay?.setAttribute('aria-hidden', 'false');
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  overlay?.classList.add('is-active');
-  await wait(420);
-  await readyImages(['/assets/classroom-classmates-background.jpeg']);
-  classmatesBeats = buildClassmatesBeats();
-  classmatesIndex = 0;
-  arthurGreetingSoundPlayed = false;
-  showScreen('classroom-classmates');
-  warmImages([...Object.values(teacherEmotionFiles), '/assets/exam-desk-background.webp']);
-  const screen = document.getElementById('classroom-classmates-screen');
-  screen?.classList.remove('classmates-entered');
-  renderClassmatesBeat();
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  screen?.classList.add('classmates-entered');
-  overlay?.classList.add('is-revealing');
-  overlay?.classList.remove('is-active');
-  await wait(850);
-  overlay?.classList.remove('is-revealing');
-  overlay?.setAttribute('aria-hidden', 'true');
-  isTransitioning = false;
+  try {
+    await transitionScene(() => {
+      classmatesBeats = buildClassmatesBeats(); classmatesIndex = 0; arthurGreetingSoundPlayed = false;
+      showScreen('classroom-classmates'); renderClassmatesBeat();
+      document.getElementById('classroom-classmates-screen')?.classList.add('classmates-entered');
+    }, ['/assets/classroom-classmates-background.jpeg']);
+    warmImages([...Object.values(teacherEmotionFiles), '/assets/exam-desk-background.webp']);
+  } finally { isTransitioning = false; }
 }
 // The classroom intro flows into the wall-gallery, then into classmates. Exam is still a later scene.
 window.addEventListener('game:classroom-look-around', () => {
@@ -1978,20 +1927,8 @@ function beginTeacherIntro(): void {
 async function transitionToTeacherIntro(): Promise<void> {
   if (isTransitioning) return;
   isTransitioning = true;
-  const overlay = document.getElementById('screen-transition');
-  overlay?.classList.remove('is-revealing');
-  overlay?.setAttribute('aria-hidden', 'false');
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  overlay?.classList.add('is-active');
-  await wait(420);
-  beginTeacherIntro();
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  overlay?.classList.add('is-revealing');
-  overlay?.classList.remove('is-active');
-  await wait(850);
-  overlay?.classList.remove('is-revealing');
-  overlay?.setAttribute('aria-hidden', 'true');
-  isTransitioning = false;
+  try { await transitionScene(beginTeacherIntro, [...classroomAssets, teacherEmotionFiles.friendly, selectedSpritePath()]); }
+  finally { isTransitioning = false; }
 }
 window.addEventListener('game:classmates-scene-finished', () => {
   if (!document.getElementById('classroom-classmates-screen')?.classList.contains('is-hidden')) void transitionToTeacherIntro();
@@ -2108,6 +2045,7 @@ function examShowRoom(speaker:string,text:string,_emotion='normal',heroEmotion?:
 }
 function beginExam(): void {
  if(examStarted) return;
+ warmImages(resultAssets);
  examStarted=true; examQuestionIndex=0; examCorrectCount=0; examHintsUsed=0; examCheatAttempts=0; examQuestionCheatStart=0; examQuestionRude=false; examAnswerOrders=[]; examPhase='question'; examFeedbackIndex=0; cameoAfterQuestion=2+Math.floor(Math.random()*5); cameoBeatIndex=0; cameoActive=false; cameoPlayed=false;
  // Keep the classroom soundtrack running from the previous scene.
  showScreen('exam');
@@ -2216,6 +2154,7 @@ function archetypeAnswerReaction(correct:boolean,bad:boolean): string {
 }
 function answerExamQuestion(index:number): void {
  if(examPhase!=='paper') return;
+ if (examQuestionIndex >= 2) warmImages(achievementAssets);
  const q=examQuestions[examQuestionIndex]; const correct=index===q.correct; const bad=index===q.bad;
  document.querySelectorAll<HTMLButtonElement>('.exam-answer-button').forEach(b=>b.disabled=true);
  if(correct) {
@@ -2408,7 +2347,11 @@ function onExamNext(): void {
   return;
  }
 }
-window.addEventListener('game:exam-intro-requested',()=>beginExam());
+window.addEventListener('game:exam-intro-requested', async () => {
+  if (isTransitioning || examStarted) return;
+  isTransitioning = true;
+  try { await transitionScene(beginExam, classroomAssets); } finally { isTransitioning = false; }
+});
 
 
 type ExcellentEndingBeat = { image: string; speaker: string; text: string; period: 'past' | 'evening' | 'present'; alt: string; fade?: boolean };
@@ -2855,6 +2798,17 @@ function ensureFinalResultMotionStyles(): void {
   document.head.appendChild(style);
 }
 
+let preparedResultAudio: { music: HTMLAudioElement; sting: HTMLAudioElement } | null = null;
+function prepareResultAudio(): { music: HTMLAudioElement; sting: HTMLAudioElement } {
+  if (!preparedResultAudio) {
+    preparedResultAudio = {
+      music: createAudio('/assets/endings/final-screen/omplete-sound.mp3'),
+      sting: createAudio(examCorrectCount <= 3 ? '/assets/endings/final-screen/fail-result.mp3' : examCorrectCount >= 6 ? '/assets/endings/final-screen/excellent-result.mp3' : '/assets/endings/final-screen/pass-result.mp3'),
+    };
+    prepareAudio(preparedResultAudio.music); prepareAudio(preparedResultAudio.sting);
+  }
+  return preparedResultAudio;
+}
 function showFinalResultScreen(): void {
   warmImages(achievementAssets);
   ensureFinalResultMotionStyles();
@@ -2944,21 +2898,11 @@ function showFinalResultScreen(): void {
   book.style.containerType = 'inline-size';
   // Play the outcome-specific sting first, then switch to the looping final-screen soundtrack.
   // 4-5 correct = GTA IV; 6-7 = GTA: San Andreas mission complete; 0-3 = MK3 suspense.
-  const resultStingPath = examCorrectCount <= 3
-    ? '/assets/endings/final-screen/fail-result.mp3'
-    : examCorrectCount >= 6
-      ? '/assets/endings/final-screen/excellent-result.mp3'
-      : '/assets/endings/final-screen/pass-result.mp3';
-  const resultMusic = createAudio('/assets/endings/final-screen/omplete-sound.mp3');
-  resultMusic.loop = true;
-  resultMusic.volume = 0.72;
-  resultMusic.preload = 'none';
-  resultMusic.dataset.finalResultMusic = 'true';
-  const resultSting = createAudio(resultStingPath);
-  resultSting.loop = false;
-  resultSting.volume = 0.82;
-  resultSting.preload = 'none';
-  resultSting.dataset.finalResultMusic = 'true';
+  const { music: resultMusic, sting: resultSting } = prepareResultAudio();
+  preparedResultAudio = null;
+  resultMusic.loop = true; resultMusic.volume = 0.72;
+  resultSting.loop = false; resultSting.volume = 0.82;
+  resultMusic.dataset.finalResultMusic = 'true'; resultSting.dataset.finalResultMusic = 'true';
   let resultAudioStopped = false;
   const startLoopingResultMusic = () => {
     if (resultAudioStopped) return;
@@ -3191,6 +3135,7 @@ function startEndingCredits(): void {
     position: 'fixed', inset: '0', zIndex: '2147483000', background: '#000',
     display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
   });
+  void Promise.all(resultAssets.map(source => loadImage(source))).then(() => prepareResultAudio());
   const video = prepareCreditsVideo();
   preparedCreditsVideo = null;
   warmImages([...resultAssets, ...achievementAssets]);
