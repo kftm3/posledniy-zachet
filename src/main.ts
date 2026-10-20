@@ -861,8 +861,8 @@ function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket
     warmImages([...corridorAssets, selectedSpritePath('thinking'), `/assets/characters/${corridorFriend.folder}/thinking.webp`, ...classroomAssets, '/assets/student-ticket.webp']);
     warmImages(['smile', 'confident', 'worried', 'normal'].flatMap(emotion => [selectedSpritePath(emotion as CharacterEmotion), `/assets/characters/${corridorFriend.folder}/${emotion}.webp`]));
   }
-  if (showSkills) { renderSkills(); prepareMedia(document.getElementById('intro-video') as HTMLVideoElement | null); }
-  if (showTicket) { renderTicket(); prepareCorridor(); prepareMedia(document.getElementById('intro-video') as HTMLVideoElement | null); }
+  if (showSkills) { renderSkills(); void prepareDisclaimer(); prepareMedia(document.getElementById('intro-video') as HTMLVideoElement | null); }
+  if (showTicket) { renderTicket(); prepareCorridor(); void prepareDisclaimer(); prepareMedia(document.getElementById('intro-video') as HTMLVideoElement | null); }
 }
 let selectionRenderVersion = 0;
 function renderSelection(): void {
@@ -1092,10 +1092,30 @@ document.querySelectorAll<HTMLElement>('.selector-panel').forEach((panel) => {
 document.getElementById('ticket-back')?.addEventListener('click', async () => { if(isTransitioning)return; isTransitioning=true; try { await transitionScene(() => showScreen('skills')); } finally { isTransitioning=false; } });
 let introVideoInProgress = false;
 let introVideoFinished = false;
+let introVideoShown = false;
+let disclaimerPreparation: Promise<boolean> | null = null;
+let disclaimerArtworkReady = false;
+function prepareDisclaimer(): Promise<boolean> {
+  if (disclaimerPreparation) return disclaimerPreparation;
+  const image = document.querySelector<HTMLImageElement>('#disclaimer-overlay .disclaimer-image');
+  if (!image) return Promise.resolve(false);
+  image.loading = 'eager';
+  if (image.complete && !image.naturalWidth) image.src = image.src;
+  disclaimerPreparation = image.decode().then(() => {
+    disclaimerArtworkReady = true;
+    return true;
+  }, () => {
+    disclaimerArtworkReady = false;
+    disclaimerPreparation = null; // Retry on a later visit to skills/ticket.
+    return false;
+  });
+  return disclaimerPreparation;
+}
 
 function finishIntroVideoAndEnterCorridor(): void {
   if (introVideoFinished) return;
   introVideoFinished = true;
+  introVideoShown = false;
   introVideoInProgress = false;
   const video = document.getElementById('intro-video') as HTMLVideoElement | null;
   if (video) {
@@ -1120,6 +1140,9 @@ function playIntroVideoBeforeCorridor(): void {
   }
 
   introVideoInProgress = true;
+  introVideoShown = false;
+  void prepareDisclaimer();
+  disclaimer.classList.toggle('has-artwork', disclaimerArtworkReady);
   prepareCorridor();
   disclaimer.classList.remove('is-hidden');
   disclaimer.setAttribute('aria-hidden', 'false');
@@ -1149,8 +1172,9 @@ function playIntroVideoBeforeCorridor(): void {
   }
 
   // The disclaimer has no controls and automatically advances to the intro after 4 seconds.
-  window.setTimeout(() => {
+  requestAnimationFrame(() => requestAnimationFrame(() => window.setTimeout(() => {
     if (introVideoFinished || !introVideoInProgress) return;
+    introVideoShown = true;
     disclaimer.classList.add('is-hidden');
     disclaimer.setAttribute('aria-hidden', 'true');
     overlay.classList.remove('is-hidden');
@@ -1165,7 +1189,7 @@ function playIntroVideoBeforeCorridor(): void {
         video.controls = true;
       });
     }
-  }, 4000);
+  }, 4000)));
 }
 
 document.getElementById('ticket-start')?.addEventListener('click',()=>{
@@ -1173,7 +1197,7 @@ document.getElementById('ticket-start')?.addEventListener('click',()=>{
   const el=document.getElementById('ticket-start'); if(el){el.classList.add('is-confirmed');window.setTimeout(()=>el.classList.remove('is-confirmed'),500);}
   playIntroVideoBeforeCorridor();
 });
-document.getElementById('intro-video')?.addEventListener('ended', finishIntroVideoAndEnterCorridor);
+document.getElementById('intro-video')?.addEventListener('ended', () => { if (introVideoShown) finishIntroVideoAndEnterCorridor(); });
 document.getElementById('intro-video-skip')?.addEventListener('click', finishIntroVideoAndEnterCorridor);
 
 // First narrative scene: the corridor dialogue follows the approved scenario branches.
@@ -2979,6 +3003,7 @@ function showFinalResultScreen(): void {
       if (endingCreditsTimer !== null) { window.clearTimeout(endingCreditsTimer); endingCreditsTimer = null; }
       introVideoInProgress = false;
       introVideoFinished = false;
+      introVideoShown = false;
       excellentEndingIndex = 0; excellentEndingBeats = []; excellentEndingTransition = false;
       lockedArchetype = null;
       corridorMusicStarted = false; corridorRunStartedAt = 0; endingRunDurationMs = 0;
@@ -3054,6 +3079,7 @@ function showFinalResultScreen(): void {
       // restore the character-selection portraits to their neutral sprites.
       introVideoInProgress = false;
       introVideoFinished = false;
+      introVideoShown = false;
       cameoActive = false; cameoPlayed = false; cameoBeatIndex = 0;
       arthurGreetingSoundPlayed = false;
       document.getElementById('cameo-overlay')?.classList.add('is-hidden');
