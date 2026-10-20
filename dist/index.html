@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07122f" />
+    <meta name="description" content="Последний зачёт — визуальная новелла" />
+    <title>Последний зачёт</title>
+    <script type="module" crossorigin src="/posledniy-zachet/assets/index-aQGlPw0T.js"></script>
+    <link rel="stylesheet" crossorigin href="/posledniy-zachet/assets/index-BDBEzizp.css">
+  </head>
+  <body>
+    <div id="app">
+      <audio id="intro-music" src="./audio/menu-gt4.mp3" preload="auto" loop playsinline></audio>
+      <audio id="corridor-ambience" src="./audio/corridor/people-chatting.wav" preload="auto" loop playsinline></audio>
+      <main class="game-root">
+        <section class="game-stage start-screen" id="start-screen" aria-label="Главное меню Последний зачёт">
+          <div class="campus" aria-hidden="true"></div>
+          <div class="shade" aria-hidden="true"></div>
+          <div class="game-title" aria-label="Последний зачёт">
+            <span class="title-last">Последний</span>
+            <span class="title-exam">Зачёт</span>
+            <span class="title-cap" aria-hidden="true">⌑</span>
+          </div>
+          <button class="start-button" id="start-button" type="button" aria-label="Начать игру">
+            <img src="/posledniy-zachet/assets/start-button.png" alt="Начать игру" draggable="false" />
+          </button>
+          <div class="credit" aria-label="Developed by kftm3">
+            <span class="credit-small">developed by</span>
+            <span class="credit-name">kftm3</span>
+            <span class="credit-crown" aria-hidden="true">♛</span>
+          </div>
+        </section>
+
+        <section class="game-stage character-screen is-hidden" id="character-screen" aria-label="Выбор персонажа" aria-hidden="true">
+          <div class="selection-background" aria-hidden="true"></div>
+          <div class="selection-shade" aria-hidden="true"></div>
+          <div class="selection-heading" aria-label="Выберите персонажа">
+            <span class="heading-white">ВЫБЕРИТЕ</span>
+            <span class="heading-blue">ПЕРСОНАЖА</span>
+          </div>
+
+          <div class="selector-panel male-panel" data-gender="male" aria-label="Мужские персонажи">
+            <img class="character-full-sprite male-boy1-sprite" id="male-boy1-sprite" src="/posledniy-zachet/assets/characters/student_boy1/normal.png" alt="Персонаж 1: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img class="character-full-sprite male-boy2-sprite" id="male-boy2-sprite" src="/posledniy-zachet/assets/characters/student_boy2/normal.png" alt="Персонаж 2: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img class="character-full-sprite male-boy3-sprite" id="male-boy3-sprite" src="/posledniy-zachet/assets/characters/student_boy3/normal.png" alt="Персонаж 3: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img class="character-full-sprite male-boy4-sprite" id="male-boy4-sprite" src="/posledniy-zachet/assets/characters/student_boy4/normal.png" alt="Персонаж 4: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img class="character-full-sprite male-boy5-sprite" id="male-boy5-sprite" src="/posledniy-zachet/assets/characters/student_boy5/normal.png" alt="Персонаж 5: парень, обычное состояние" draggable="false" aria-hidden="true" />
+<img class="character-full-sprite male-boy6-sprite" id="male-boy6-sprite" src="/posledniy-zachet/assets/characters/student_male6/normal.png" alt="Секретный персонаж: Карл Джонсон" draggable="false" aria-hidden="true" />
+<img class="character-full-sprite male-boy7-sprite" id="male-boy7-sprite" src="/posledniy-zachet/assets/characters/student_male7/normal.png" alt="Секретный персонаж: Мик Томпсон" draggable="false" aria-hidden="true" />
+            <img class="panel-art" src="/posledniy-zachet/assets/character_selector_male.png" alt="Парень. Классический путь студента. Дружба, экзамены, выборы и неожиданные повороты." draggable="false" />
+            <button class="panel-hit" type="button" aria-label="Выбрать мужского персонажа"></button>
+            <button class="arrow-hit arrow-left" type="button" aria-label="Предыдущий мужской персонаж"></button>
+            <button class="arrow-hit arrow-right" type="button" aria-label="Следующий мужской персонаж"></button>
+            <div class="slot-hitboxes" aria-label="Варианты мужского персонажа">
+              <button class="portrait-slot has-portrait" type="button" data-index="0" aria-label="Мужской персонаж 1"><img src="/posledniy-zachet/assets/characters/student_boy1/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="1" aria-label="Мужской персонаж 2"><img src="/posledniy-zachet/assets/characters/student_boy2/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="2" aria-label="Мужской персонаж 3"><img src="/posledniy-zachet/assets/characters/student_boy3/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="3" aria-label="Мужской персонаж 4"><img src="/posledniy-zachet/assets/characters/student_boy4/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="4" aria-label="Мужской персонаж 5"><img src="/posledniy-zachet/assets/characters/student_boy5/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait secret-portrait-slot is-hidden" type="button" data-index="5" data-secret="cj" aria-label="Секретный мужской персонаж: Карл Джонсон" aria-hidden="true"><img src="/posledniy-zachet/assets/characters/student_male6/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait devil-portrait-slot is-hidden" type="button" data-index="6" data-secret="devil" aria-label="Секретный мужской персонаж: Мик Томпсон" aria-hidden="true"><img src="/posledniy-zachet/assets/characters/student_male7/card.png" alt="" draggable="false" /></button>
+            </div>
+          </div>
+
+          <div class="selector-panel female-panel" data-gender="female" aria-label="Женские персонажи">
+            <img class="character-full-sprite female-girl1-sprite" id="female-girl1-sprite" src="/posledniy-zachet/assets/characters/student_girl1/normal.png" alt="Персонаж 1: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img class="character-full-sprite female-girl2-sprite" id="female-girl2-sprite" src="/posledniy-zachet/assets/characters/student_girl2/normal.png" alt="Персонаж 2: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img class="character-full-sprite female-girl3-sprite" id="female-girl3-sprite" src="/posledniy-zachet/assets/characters/student_girl3/normal.png" alt="Персонаж 3: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img class="character-full-sprite female-girl4-sprite" id="female-girl4-sprite" src="/posledniy-zachet/assets/characters/student_girl4/normal.png" alt="Персонаж 4: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img class="character-full-sprite female-girl5-sprite" id="female-girl5-sprite" src="/posledniy-zachet/assets/characters/student_girl5/normal.png" alt="Персонаж 5: девушка, обычное состояние" draggable="false" aria-hidden="true" />
+            <img class="panel-art" src="/posledniy-zachet/assets/character_selector_female.png" alt="Девушка. Альтернативный взгляд на ту же историю. Новые диалоги, события и особые сцены." draggable="false" />
+            <button class="panel-hit" type="button" aria-label="Выбрать женского персонажа"></button>
+            <button class="arrow-hit arrow-left" type="button" aria-label="Предыдущий женский персонаж"></button>
+            <button class="arrow-hit arrow-right" type="button" aria-label="Следующий женский персонаж"></button>
+            <div class="slot-hitboxes" aria-label="Варианты женского персонажа">
+              <button class="portrait-slot has-portrait" type="button" data-index="0" aria-label="Женский персонаж 1"><img src="/posledniy-zachet/assets/characters/student_girl1/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="1" aria-label="Женский персонаж 2"><img src="/posledniy-zachet/assets/characters/student_girl2/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="2" aria-label="Женский персонаж 3"><img src="/posledniy-zachet/assets/characters/student_girl3/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="3" aria-label="Женский персонаж 4"><img src="/posledniy-zachet/assets/characters/student_girl4/card.png" alt="" draggable="false" /></button>
+              <button class="portrait-slot has-portrait" type="button" data-index="4" aria-label="Женский персонаж 5"><img src="/posledniy-zachet/assets/characters/student_girl5/card.png" alt="" draggable="false" /></button>
+            </div>
+          </div>
+          <button class="nav-image-button continue-button" id="continue-button" type="button" aria-label="Продолжить">
+            <img src="/posledniy-zachet/assets/button_continue.png" alt="Продолжить" draggable="false" />
+          </button>
+          <div class="selection-toast" id="selection-toast" role="status" aria-live="polite"></div>
+        </section>
+        <section class="game-stage input-screen is-hidden" id="input-screen" aria-label="Ввод данных игрока" aria-hidden="true">
+          <div class="input-background" aria-hidden="true"></div>
+          <div class="input-shade" aria-hidden="true"></div>
+          <button class="input-back-button" id="input-back-button" type="button" aria-label="Назад к выбору персонажа"><span aria-hidden="true">←</span> НАЗАД</button>
+          <div class="notebook-wrap">
+            <img class="notebook-art" src="/posledniy-zachet/assets/notebook_form_transparent.png" alt="Блокнот с формой ввода данных" draggable="false" />
+            <form class="player-form" id="player-form" autocomplete="on">
+              <label class="player-field surname-field"><span>Фамилия</span><input name="surname" id="player-surname" type="text" maxlength="40" autocomplete="family-name" required /></label>
+              <label class="player-field name-field"><span>Имя</span><input name="givenName" id="player-name" type="text" maxlength="40" autocomplete="given-name" required /></label>
+              <label class="player-field group-field"><span>Группа</span><input name="group" id="player-group" type="text" inputmode="numeric" pattern="[0-9]+" maxlength="20" autocomplete="off" required /></label>
+              <button class="input-continue" type="submit" aria-label="Продолжить"></button>
+            </form>
+          </div>
+          <div class="input-toast" id="input-toast" role="status" aria-live="polite"></div>
+        </section>
+        <section class="game-stage skills-screen is-hidden" id="skills-screen" aria-label="Распределение навыков" aria-hidden="true">
+          <div class="skills-background" aria-hidden="true"></div>
+          <div class="skills-shade" aria-hidden="true"></div>
+          <header class="skills-header">
+            <h1>РАСПРЕДЕЛЕНИЕ НАВЫКОВ</h1>
+            <p>Как ты подготовишься к последнему зачёту?</p>
+            <div class="points-counter">ОСТАЛОСЬ ОЧКОВ: <strong id="points-left">10</strong></div>
+          </header>
+          <div class="skills-layout">
+            <section class="skills-board" aria-label="Твои навыки">
+              <div class="skills-board-title">ТВОИ НАВЫКИ <small>МАКСИМУМ 4 ОТМЕТКИ НА НАВЫК</small></div>
+              <div class="skills-grid" id="skills-grid">
+                <article class="skill-card" data-skill="knowledge"><div class="skill-icon-wrap"><div class="skill-icon"><span>▤</span></div></div><div class="skill-copy"><h2>ЗНАНИЯ</h2><p>Факты, теория, конспекты<br>и правильные ответы.</p></div><div class="skill-control"><div class="skill-meter" aria-label="Уровень знания"></div><div class="skill-actions"><button type="button" data-delta="-1" aria-label="Уменьшить знания">−</button><strong>0</strong><button type="button" data-delta="1" aria-label="Увеличить знания">+</button></div></div></article>
+                <article class="skill-card" data-skill="logic"><div class="skill-icon-wrap"><div class="skill-icon"><span>Σ</span></div></div><div class="skill-copy"><h2>ЛОГИКА</h2><p>Анализ ситуаций<br>и поиск решений.</p></div><div class="skill-control"><div class="skill-meter" aria-label="Уровень логики"></div><div class="skill-actions"><button type="button" data-delta="-1" aria-label="Уменьшить логику">−</button><strong>0</strong><button type="button" data-delta="1" aria-label="Увеличить логику">+</button></div></div></article>
+                <article class="skill-card" data-skill="charisma"><div class="skill-icon-wrap"><div class="skill-icon"><span>♟</span></div></div><div class="skill-copy"><h2>ХАРИЗМА</h2><p>Общение, убеждение<br>и договорённости.</p></div><div class="skill-control"><div class="skill-meter" aria-label="Уровень харизмы"></div><div class="skill-actions"><button type="button" data-delta="-1" aria-label="Уменьшить харизму">−</button><strong>0</strong><button type="button" data-delta="1" aria-label="Увеличить харизму">+</button></div></div></article>
+                <article class="skill-card" data-skill="cunning"><div class="skill-icon-wrap"><div class="skill-icon"><span>➤</span></div></div><div class="skill-copy"><h2>ХИТРОСТЬ</h2><p>Нестандартные решения<br>и обходные пути.</p></div><div class="skill-control"><div class="skill-meter" aria-label="Уровень хитрости"></div><div class="skill-actions"><button type="button" data-delta="-1" aria-label="Уменьшить хитрость">−</button><strong>0</strong><button type="button" data-delta="1" aria-label="Увеличить хитрость">+</button></div></div></article>
+                <article class="skill-card" data-skill="confidence"><div class="skill-icon-wrap"><div class="skill-icon"><span>⚑</span></div></div><div class="skill-copy"><h2>УВЕРЕННОСТЬ</h2><p>Смелость, риск<br>и решительность.</p></div><div class="skill-control"><div class="skill-meter" aria-label="Уровень уверенности"></div><div class="skill-actions"><button type="button" data-delta="-1" aria-label="Уменьшить уверенность">−</button><strong>0</strong><button type="button" data-delta="1" aria-label="Увеличить уверенность">+</button></div></div></article>
+                <article class="skill-card" data-skill="attention"><div class="skill-icon-wrap"><div class="skill-icon"><span>⌕</span></div></div><div class="skill-copy"><h2>ВНИМАТЕЛЬНОСТЬ</h2><p>Детали, подсказки<br>и наблюдательность.</p></div><div class="skill-control"><div class="skill-meter" aria-label="Уровень внимательности"></div><div class="skill-actions"><button type="button" data-delta="-1" aria-label="Уменьшить внимательность">−</button><strong>0</strong><button type="button" data-delta="1" aria-label="Увеличить внимательность">+</button></div></div></article>
+              </div>
+            </section>
+            <aside class="archetype-panel"><div class="archetype-ribbon">ТВОЙ СТУДЕНЧЕСКИЙ ПРОФИЛЬ</div><div class="archetype-emblem" id="archetype-emblem">▤</div><h2 id="archetype-name">УНИВЕРСАЛ</h2><p id="archetype-description">Пока ты не выбрал специализацию. Распредели очки и узнай свой стиль подготовки.</p><div class="archetype-bonus" id="archetype-bonus">Твой профиль определится автоматически</div><small>ПРОФИЛЬ МОЖЕТ ИЗМЕНИТЬСЯ</small><p class="archetype-hint">Распределяй очки так, как тебе ближе — архетип определится автоматически.</p><div class="skill-status" id="skills-status">Распредели все 10 очков</div></aside>
+          </div>
+          <button class="skills-back" id="skills-back" type="button"><span>≪</span> НАЗАД</button>
+          <div class="skills-warning" id="skills-warning">ⓘ &nbsp; Все очки нужно распределить до подтверждения</div>
+          <button class="skills-continue" id="skills-continue" type="button" disabled>ПРОДОЛЖИТЬ <span>→</span></button>
+          <div class="skills-toast" id="skills-toast" role="status" aria-live="polite"></div>
+        </section>
+        <section class="game-stage ticket-screen is-hidden" id="ticket-screen" aria-label="Подтверждение персонажа" aria-hidden="true">
+          <div class="ticket-background" aria-hidden="true"></div><div class="ticket-shade" aria-hidden="true"></div>
+          <header class="ticket-heading"><h1><span>ПОДТВЕРДИТЕ</span><span>ПЕРСОНАЖА</span></h1><p>Проверьте данные. После подтверждения<br>начнётся игра.</p></header>
+          <div class="ticket-wrap">
+            <img class="ticket-art" src="/posledniy-zachet/assets/student-ticket.png" alt="Студенческий билет Казанского инновационного университета" draggable="false" />
+            <div class="ticket-photo"><img id="ticket-photo" src="/posledniy-zachet/assets/characters/student_girl1/card.png" alt="Выбранный персонаж" /></div>
+            <div class="ticket-field-value ticket-surname" id="ticket-surname">Фамилия</div><div class="ticket-field-value ticket-name" id="ticket-name">Имя</div><div class="ticket-field-value ticket-group" id="ticket-group">Группа</div>
+            <div class="ticket-archetype-icon" id="ticket-archetype-icon" aria-hidden="true"></div><div class="ticket-archetype-name" id="ticket-archetype-name">УНИВЕРСАЛ</div><div class="ticket-archetype-description" id="ticket-archetype-description">Твой стиль определится по распределению навыков.</div>
+          </div>
+          <button class="ticket-back" id="ticket-back" type="button"><span>≪</span> НАЗАД</button><button class="ticket-start" id="ticket-start" type="button">НАЧАТЬ ИГРУ <span>→</span></button>
+        </section>
+        <section class="game-stage corridor-screen is-hidden" id="corridor-screen" aria-label="Сюжетная сцена в коридоре" aria-hidden="true">
+          <div class="corridor-background" aria-hidden="true"></div>
+          <div class="corridor-vignette" aria-hidden="true"></div>
+          <img class="corridor-character-sprite" id="corridor-character-sprite" src="/posledniy-zachet/assets/characters/student_boy1/normal.png" alt="Персонаж игрока" />
+          <img class="corridor-friend-sprite is-hidden" id="corridor-friend-sprite" src="/posledniy-zachet/assets/characters/student_girl1/normal.png" alt="Друг персонажа" aria-hidden="true" />
+          <div class="corridor-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · КОРИДОР</span></div>
+          <div class="corridor-dialogue-layout">
+            <div class="corridor-dialogue-left">
+              <div class="corridor-player-name" id="corridor-player-name">ИМЯ ИГРОКА</div>
+              <div class="corridor-dialogue-text" id="corridor-dialogue-text">Последний зачёт. Главное — собраться с мыслями.</div>
+              <div class="corridor-dialogue-controls">
+                <span class="corridor-progress" id="corridor-progress">1 / 5</span>
+                <button class="corridor-next" id="corridor-next" type="button">ДАЛЬШЕ <span>→</span></button>
+              </div>
+            </div>
+            <div class="corridor-choices is-hidden" id="corridor-choices" aria-label="Варианты ответа">
+              <p>КАК ОТВЕТИШЬ?</p>
+              <button type="button" data-choice="confident">«Спокойно. Я справлюсь»</button>
+              <button type="button" data-choice="smile">«Главное — войти уверенно»</button>
+              <button type="button" data-choice="thinking">«Сначала оценю ситуацию»</button>
+            </div>
+          </div>
+          <button class="corridor-exit is-hidden" id="corridor-exit" type="button">К АУДИТОРИИ <span>→</span></button>
+        </section>
+        <section class="game-stage classroom-intro-screen is-hidden" id="classroom-intro-screen" aria-label="Вход в аудиторию" aria-hidden="true">
+          <div class="classroom-intro-background" aria-hidden="true"></div>
+          <div class="classroom-intro-shade" aria-hidden="true"></div>
+          <div class="classroom-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · АУДИТОРИЯ</span></div>
+          <div class="corridor-dialogue-layout classroom-dialogue-layout">
+            <div class="corridor-dialogue-left">
+              <div class="corridor-player-name" id="classroom-speaker">МЫСЛИ</div>
+              <div class="corridor-dialogue-text" id="classroom-dialogue-text">Последний экзамен. Спокойно.</div>
+              <div class="corridor-dialogue-controls">
+                <span class="corridor-progress" id="classroom-progress">1 / 4</span>
+                <button class="corridor-next" id="classroom-next" type="button">ДАЛЬШЕ <span>→</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="game-stage classroom-gallery-screen is-hidden" id="classroom-gallery-screen" aria-label="Осмотр стены аудитории" aria-hidden="true">
+          <div class="classroom-gallery-background" aria-hidden="true"></div>
+          <div class="classroom-gallery-shade" aria-hidden="true"></div>
+          <div class="classroom-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · АУДИТОРИЯ</span></div>
+          <div class="corridor-dialogue-layout classroom-dialogue-layout gallery-dialogue-layout">
+            <div class="corridor-dialogue-left">
+              <div class="corridor-player-name" id="gallery-speaker">МЫСЛИ</div>
+              <div class="corridor-dialogue-text" id="gallery-dialogue-text">На стене целая история университета…</div>
+              <div class="corridor-dialogue-controls">
+                <span class="corridor-progress" id="gallery-progress">1 / 4</span>
+                <button class="corridor-next" id="gallery-next" type="button">ДАЛЬШЕ <span>→</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="game-stage classroom-classmates-screen is-hidden" id="classroom-classmates-screen" aria-label="Одногруппники в аудитории" aria-hidden="true">
+          <div class="classroom-classmates-background" aria-hidden="true"></div>
+          <div class="classroom-classmates-shade" aria-hidden="true"></div>
+          <div class="classroom-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · АУДИТОРИЯ</span></div>
+          <div class="corridor-dialogue-layout classroom-dialogue-layout classmates-dialogue-layout">
+            <div class="corridor-dialogue-left">
+              <div class="corridor-player-name" id="classmates-speaker">МЫСЛИ</div>
+              <div class="corridor-dialogue-text" id="classmates-dialogue-text">Одногруппники уже на местах…</div>
+              <div class="corridor-dialogue-controls">
+                <span class="corridor-progress" id="classmates-progress">1 / 7</span>
+                <button class="corridor-next" id="classmates-next" type="button">ДАЛЬШЕ <span>→</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="game-stage teacher-intro-screen is-hidden" id="teacher-intro-screen" aria-label="Диалог с преподавательницей перед зачётом" aria-hidden="true">
+          <div class="teacher-intro-background" aria-hidden="true"></div>
+          <div class="teacher-intro-shade" aria-hidden="true"></div>
+          <div class="classroom-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · АУДИТОРИЯ</span></div>
+          <img class="teacher-scene-sprite" id="teacher-scene-sprite" src="/posledniy-zachet/assets/characters/teacher/friendly.png" alt="Преподавательница" />
+          <img class="teacher-hero-sprite is-hidden" id="teacher-hero-sprite" src="/posledniy-zachet/assets/characters/student_boy1/normal.png" alt="Главный герой" />
+          <div class="corridor-dialogue-layout classroom-dialogue-layout teacher-dialogue-layout">
+            <div class="corridor-dialogue-left teacher-dialogue-left">
+              <div class="corridor-player-name" id="teacher-speaker">ПРЕПОДАВАТЕЛЬНИЦА</div>
+              <div class="corridor-dialogue-text" id="teacher-dialogue-text">Фамилия, чего завис? Готов к зачёту?</div>
+              <div class="teacher-choice-panel" id="teacher-choices" aria-label="Выбор ответа">
+                <button type="button" data-teacher-choice="0"></button>
+                <button type="button" data-teacher-choice="1"></button>
+                <button type="button" data-teacher-choice="2"></button>
+              </div>
+              <div class="corridor-dialogue-controls teacher-dialogue-controls">
+                <span class="corridor-progress" id="teacher-progress">1 / 5</span>
+                <button class="corridor-next is-hidden" id="teacher-next" type="button">ДАЛЬШЕ <span>→</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="game-stage exam-screen is-hidden" id="exam-screen" aria-label="Зачёт" aria-hidden="true">
+          <div class="exam-room-background" id="exam-room-background" aria-hidden="true"></div>
+          <div class="exam-desk-background is-hidden" id="exam-desk-background" aria-hidden="true"></div>
+          <div class="teacher-intro-shade exam-room-shade" id="exam-room-shade" aria-hidden="true"></div>
+          <div class="classroom-topline"><span>ПОСЛЕДНИЙ ЗАЧЁТ</span><span>КИУ · АУДИТОРИЯ</span></div>
+          <img class="teacher-scene-sprite exam-teacher-sprite" id="exam-teacher-sprite" src="/posledniy-zachet/assets/characters/teacher/friendly.png" alt="Преподавательница" />
+          <img class="teacher-hero-sprite exam-hero-sprite" id="exam-hero-sprite" src="/posledniy-zachet/assets/characters/student_boy1/normal.png" alt="Главный герой" />
+          <div class="corridor-dialogue-layout classroom-dialogue-layout exam-dialogue-layout" id="exam-dialogue-panel">
+            <div class="corridor-dialogue-left teacher-dialogue-left exam-dialogue-left">
+              <div class="corridor-player-name" id="exam-speaker">ПРЕПОДАВАТЕЛЬНИЦА</div>
+              <div class="corridor-dialogue-text" id="exam-dialogue-text"></div>
+              <div class="exam-paper-question" id="exam-paper-question"></div>
+              <div class="exam-answer-list" id="exam-answer-list"></div>
+              <div class="exam-paper-actions">
+                <button type="button" id="exam-hint-button">Попросить подсказку</button>
+                <button type="button" id="exam-cheat-button">Попробовать списать</button>
+                <button type="button" id="exam-rude-button">Огрызнуться</button>
+              </div>
+              <div class="exam-action-status" id="exam-action-status" aria-live="polite"></div>
+              <div class="exam-dialogue-controls corridor-dialogue-controls">
+                <span class="corridor-progress" id="exam-progress">ВОПРОС 1 / 7</span>
+                <button class="corridor-next" id="exam-next" type="button">ДАЛЬШЕ <span>→</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="cameo-overlay is-hidden" id="cameo-overlay" aria-label="Камео KFTM3" aria-hidden="true">
+            <div class="cameo-scene-frame">
+              <img class="cameo-scene-image" id="cameo-scene-image" src="/posledniy-zachet/assets/cameo/kftm3-entry.png" alt="KFTM3 и друг входят в аудиторию" />
+            </div>
+            <div class="corridor-dialogue-layout cameo-dialogue" id="cameo-dialogue-panel">
+              <div class="corridor-dialogue-left">
+                <div class="corridor-player-name" id="cameo-speaker">KFTM3</div>
+                <div class="corridor-dialogue-text" id="cameo-dialogue-text">Здравствуйте! Как у вас дела?</div>
+                <div class="corridor-dialogue-controls cameo-controls">
+                  <span class="corridor-progress cameo-progress" id="cameo-progress">КАМЕО · 1 / 3</span>
+                  <button class="corridor-next cameo-next" id="cameo-next" type="button">ПРОДОЛЖИТЬ <span>→</span></button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        <section class="disclaimer-overlay is-hidden" id="disclaimer-overlay" aria-label="Дисклеймер" aria-hidden="true">
+            <img class="disclaimer-image" src="/posledniy-zachet/assets/disclaimer.jpg" alt="Дисклеймер игры «Последний зачёт»" />
+          </section>
+
+        <section class="intro-video-overlay is-hidden" id="intro-video-overlay" aria-label="Вступительное видео" aria-hidden="true">
+            <video id="intro-video" class="intro-video" preload="auto" playsinline>
+              <source src="/posledniy-zachet/video/last-exam-intro.mp4" type="video/mp4" />
+            </video>
+            <button class="intro-video-skip" id="intro-video-skip" type="button" aria-label="Пропустить вступительное видео">ПРОПУСТИТЬ <span>→</span></button>
+          </section>
+
+        <div class="screen-transition" id="screen-transition" aria-hidden="true"></div>
+      </main>
+      <div class="orientation-overlay" id="orientation-overlay" aria-hidden="true">Поверните устройство горизонтально для лучшего отображения</div>
+    </div>
+  
+        <section class="excellent-ending is-hidden" id="excellent-ending" aria-label="Концовка Отличника" aria-hidden="true">
+          <div class="excellent-ending-scene" id="excellent-ending-scene">
+            <img class="excellent-ending-image" id="excellent-ending-image" src="/posledniy-zachet/assets/endings/excellent/male-study.png" alt="Ночная подготовка Отличника к зачёту" />
+            <div class="excellent-ending-period" id="excellent-ending-period">ПРОШЛОЙ НОЧЬЮ:</div>
+            <div class="excellent-ending-vignette" aria-hidden="true"></div>
+          </div>
+          <div class="corridor-dialogue-layout classroom-dialogue-layout excellent-ending-dialogue">
+            <div class="corridor-dialogue-left teacher-dialogue-left">
+              <div class="corridor-player-name" id="excellent-ending-speaker">МЫСЛИ</div>
+              <div class="corridor-dialogue-text" id="excellent-ending-text"></div>
+              <div class="exam-dialogue-controls corridor-dialogue-controls">
+                <span class="corridor-progress" id="excellent-ending-progress">КОНЦОВКА · 1 / 7</span>
+                <button class="corridor-next" id="excellent-ending-next" type="button">ДАЛЕЕ <span>→</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+</body>
+</html>
