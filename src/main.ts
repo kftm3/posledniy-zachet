@@ -1,4 +1,5 @@
 import './style.css';
+import './achievements.css';
 import './mobile.css';
 import { isPhoneLayout, setupPhoneOrientation } from './mobile';
 import { AudioCue, unlockCueAudio } from './cue-audio';
@@ -43,7 +44,7 @@ function unlockAchievement(id: AchievementId): void {
   window.dispatchEvent(new CustomEvent('game:achievement-unlocked', { detail: { id } }));
 }
 
-// GTA-style achievement notification: queue unlocks so simultaneous rewards never overlap.
+// Queue unlocks so simultaneous achievement rewards never overlap.
 let achievementNotificationQueue: Array<(typeof ACHIEVEMENTS)[number]> = [];
 let achievementNotificationActive = false;
 let achievementNotificationStylesAdded = false;
@@ -69,7 +70,7 @@ function showNextAchievementNotification(): void {
       @keyframes achievement-card-enter { 0% { transform:translateX(calc(-100% - 36px)); opacity:0; } 72% { transform:translateX(8px); opacity:1; } 100% { transform:translateX(0); opacity:1; } }
       @keyframes achievement-card-exit { from { transform:translateX(0); opacity:1; } to { transform:translateX(calc(-100% - 36px)); opacity:0; } }
       @keyframes achievement-card-glow { 0%,100% { box-shadow:0 10px 35px rgba(0,0,0,.45),0 0 0 rgba(89,220,255,0); } 50% { box-shadow:0 10px 35px rgba(0,0,0,.45),0 0 22px rgba(89,220,255,.35); } }
-      @media(prefers-reduced-motion:reduce){#achievement-unlock-toast{animation:none!important}}
+      @media(prefers-reduced-motion:reduce){#achievement-unlock-toast{animation:none!important;opacity:1!important;transform:none!important}}
     `;
     document.head.appendChild(style);
     achievementNotificationStylesAdded = true;
@@ -90,7 +91,7 @@ function showNextAchievementNotification(): void {
     backdropFilter:'blur(10px)', animation:'achievement-card-enter .62s cubic-bezier(.2,.8,.2,1) forwards, achievement-card-glow 1.4s ease-in-out .65s 2',
     pointerEvents:'none',
   });
-  const iconFrame = document.createElement('div');
+  const iconFrame = document.createElement('div'); iconFrame.className = 'achievement-toast-icon';
   Object.assign(iconFrame.style, { flex:'0 0 72px', width:'72px', height:'72px', display:'grid', placeItems:'center', background:`linear-gradient(145deg, ${accent}20, rgba(0,0,0,.18))`, border:`1px solid ${accent}80`, borderRadius:'3px', overflow:'hidden' });
   const iconImage = document.createElement('img');
   iconImage.src = `/assets/achievements/icons/achievement-${String(index).padStart(2, '0')}.webp`;
@@ -98,13 +99,13 @@ function showNextAchievementNotification(): void {
   Object.assign(iconImage.style, { width:'90%', height:'90%', objectFit:'contain', filter:`drop-shadow(0 0 7px ${accent}80)` });
   iconImage.onerror = () => { iconImage.remove(); iconFrame.textContent = achievement.icon; iconFrame.style.fontSize = '36px'; };
   iconFrame.appendChild(iconImage);
-  const content = document.createElement('div');
+  const content = document.createElement('div'); content.className = 'achievement-toast-copy';
   Object.assign(content.style, { minWidth:'0', display:'flex', flexDirection:'column', gap:'5px' });
-  const kicker = document.createElement('div'); kicker.textContent = 'ДОСТИЖЕНИЕ ПОЛУЧЕНО';
+  const kicker = document.createElement('div'); kicker.className = 'achievement-toast-kicker'; kicker.textContent = 'ДОСТИЖЕНИЕ ПОЛУЧЕНО';
   Object.assign(kicker.style, { color:accent, fontSize:'10px', fontWeight:'800', letterSpacing:'1.5px', textShadow:`0 0 10px ${accent}55` });
-  const title = document.createElement('div'); title.textContent = achievement.title;
+  const title = document.createElement('div'); title.className = 'achievement-toast-title'; title.textContent = achievement.title;
   Object.assign(title.style, { fontSize:'16px', lineHeight:'1.2', fontWeight:'800', overflowWrap:'anywhere', textShadow:'0 1px 3px #000' });
-  const description = document.createElement('div'); description.textContent = achievement.description;
+  const description = document.createElement('div'); description.className = 'achievement-toast-description'; description.textContent = achievement.description;
   Object.assign(description.style, { color:'#b9c2d5', fontSize:'11px', lineHeight:'1.35', marginTop:'1px' });
   content.append(kicker, title, description); card.append(iconFrame, content); document.body.appendChild(card);
   playAchievementSound();
@@ -123,130 +124,68 @@ function recordCompletedArchetype(name: string): void {
   if (current.includes('УНИВЕРСАЛ') || current.includes('UNIVERSAL')) unlockAchievement('jack-of-all-trades');
 }
 const achievementAssets = [
-  '/assets/achievements/campus-background.webp', '/assets/achievements/achievement-panel.webp',
+  '/assets/achievements/campus-background.webp',
   ...Array.from({ length: 12 }, (_, index) => `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.webp`),
 ];
 const resultAssets = ['/assets/campus-background.webp', '/assets/endings/final-screen/passbook.webp'];
 let achievementsOpening = false;
-async function showAchievementsPage(): Promise<void> {
+function hasCompletedRun(): boolean {
+  return Boolean(gameStorage.getItem(FIRST_COMPLETED_ARCHETYPE_KEY)) || readUnlockedAchievements().includes('the-end');
+}
+function syncMenuAchievementsButton(): void {
+  const button = document.getElementById('start-achievements-button') as HTMLButtonElement | null;
+  if (button) button.hidden = !hasCompletedRun();
+}
+async function showAchievementsPage(origin: 'results' | 'menu' = 'results'): Promise<void> {
   if (achievementsOpening || document.getElementById('achievements-page-overlay')) return;
+  if (origin === 'menu' && !hasCompletedRun()) return;
   achievementsOpening = true;
-  const resultScreen = document.getElementById('final-result-screen');
-  try { await readyImages(achievementAssets.slice(0, 2)); } finally { achievementsOpening = false; }
-  if (!resultScreen?.isConnected) return;
-  document.getElementById('achievements-page-overlay')?.remove();
+  const sourceScreen = origin === 'menu' ? startScreen : document.getElementById('final-result-screen');
+  try { await readyImages(achievementAssets.slice(0, 1)); } finally { achievementsOpening = false; }
+  if (!sourceScreen?.isConnected || sourceScreen.classList.contains('is-hidden')) return;
   const overlay = document.createElement('div'); overlay.id = 'achievements-page-overlay';
-  // Start with a brief full-screen blackout, then reveal the animated campus and panel.
-  // This makes the transition from the final-results screen feel deliberate instead of abrupt.
-  Object.assign(overlay.style, { position: 'fixed', inset: '0', zIndex: '2147483646', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '1.5vh 1.5vw', background: '#000', opacity: '1' });
-  const background = document.createElement('img'); background.src = '/assets/achievements/campus-background.webp'; background.alt = '';
-  Object.assign(background.style, { position: 'absolute', inset: '-3%', width: '106%', height: '106%', objectFit: 'cover', animation: 'achievements-campus-drift 30s ease-in-out infinite alternate', willChange: 'transform', opacity: '0', transition: 'opacity .65s ease' });
-  const panel = document.createElement('div');
-  panel.className = 'achievements-book';
-  Object.assign(panel.style, { position: 'relative', width: 'min(96vw, 150vh)', maxHeight: '96vh', aspectRatio: '1536 / 1024', flex: '0 1 auto', transform: 'translateY(0) scale(1)', filter: 'drop-shadow(0 0 0 rgba(0,0,0,0))', transition: 'transform .28s ease, filter .28s ease, opacity .65s ease', opacity: '0', cursor: 'default' });
-  panel.addEventListener('pointerenter', () => { panel.style.transform = 'translateY(-8px) scale(1.008)'; panel.style.filter = 'drop-shadow(0 18px 18px rgba(0,0,0,.42))'; });
-  panel.addEventListener('pointerleave', () => { panel.style.transform = 'translateY(0) scale(1)'; panel.style.filter = 'drop-shadow(0 0 0 rgba(0,0,0,0))'; });
-  const texture = document.createElement('img'); texture.src = '/assets/achievements/achievement-panel.webp'; texture.alt = 'Панель достижений';
-  Object.assign(texture.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }); panel.appendChild(texture);
+  overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'achievement-heading');
+  const background = document.createElement('img');
+  background.className = 'achievements-background'; background.src = achievementAssets[0]; background.alt = '';
+  const panel = document.createElement('section'); panel.className = 'achievements-book';
+  const heading = document.createElement('h1'); heading.className = 'achievement-heading';
+  heading.id = 'achievement-heading'; heading.textContent = 'ДОСТИЖЕНИЯ';
+  const list = document.createElement('div'); list.className = 'achievements-list'; list.setAttribute('role', 'list');
   const unlocked = readUnlockedAchievements();
-  const style = document.getElementById('achievements-page-styles') || document.createElement('style'); style.id = 'achievements-page-styles';
-  style.textContent = `@keyframes achievements-campus-drift{0%{transform:scale(1.02) translate3d(-.4%,-.3%,0)}100%{transform:scale(1.08) translate3d(.4%,.3%,0)}}@media(max-aspect-ratio: 4/3){#achievements-page-overlay{overflow:auto!important;align-items:flex-start!important}#achievements-page-panel{width:min(96vw,140vh)!important;flex-shrink:0!important}}@media(prefers-reduced-motion:reduce){#achievements-page-overlay img:first-child{animation:none!important}}`;
-  document.head.appendChild(style);
-  // Each achievement gets its own independently positioned text area. The coordinates
-  // follow the six printed rows in the supplied texture instead of relying on a shared row grid.
-  const leftRows = [
-    { top: '25.2%', height: '9.5%', textLeft: '13.0%', textTop: '28.4%' },
-    { top: '35.5%', height: '9.5%', textLeft: '13.0%', textTop: '38.7%' },
-    { top: '45.8%', height: '9.5%', textLeft: '13.0%', textTop: '49.0%' },
-    { top: '57.4%', height: '9.5%', textLeft: '13.0%', textTop: '60.6%' },
-    { top: '67.6%', height: '9.5%', textLeft: '13.0%', textTop: '70.8%' },
-    { top: '79.2%', height: '9.5%', textLeft: '13.0%', textTop: '82.4%' },
-  ];
-  const rightRows = [
-    { top: '24.4%', height: '9.5%', textLeft: '60.4%', textTop: '27.6%' },
-    { top: '34.8%', height: '9.5%', textLeft: '60.4%', textTop: '38.0%' },
-    { top: '46.5%', height: '9.5%', textLeft: '60.4%', textTop: '49.7%' },
-    { top: '56.4%', height: '9.5%', textLeft: '60.4%', textTop: '59.6%' }, // Скрытое достижение про критическую усталость преподавательницы — немного ниже
-    { top: '67.3%', height: '9.5%', textLeft: '60.4%', textTop: '70.5%' },
-    { top: '77.8%', height: '9.5%', textLeft: '60.4%', textTop: '81.0%' },
-  ];
-  const achievementList = document.createElement('div');
-  achievementList.className = 'achievements-list'; achievementList.style.display = 'contents';
-  panel.appendChild(achievementList);
   ACHIEVEMENTS.forEach((achievement, index) => {
-    const col = index < 6 ? 0 : 1, row = index % 6;
-    const position = (col === 0 ? leftRows : rightRows)[row];
     const isUnlocked = unlocked.includes(achievement.id);
     const hidden = Boolean((achievement as { hidden?: boolean }).hidden) && !isUnlocked;
-    const item = document.createElement('div'); item.className = 'achievement-item';
-    Object.assign(item.style, {
-      position: 'absolute', left: col === 0 ? '8.2%' : '53.0%', top: position.top,
-      width: '39.8%', height: position.height, boxSizing: 'border-box',
-      color: isUnlocked ? '#f5f8ff' : '#8b8b9a', opacity: isUnlocked ? '1' : '.68',
-      filter: isUnlocked ? 'none' : 'brightness(.68) saturate(.35)',
-      textShadow: isUnlocked ? '0 1px 3px rgba(0,0,0,.7)' : 'none', pointerEvents: 'none',
-    });
-    // Keep the artwork square empty so custom icons can be inserted later.
-    const iconSlot = document.createElement('div'); iconSlot.className = 'achievement-item-icon';
-    Object.assign(iconSlot.style, { position: 'absolute', left: col === 0 ? '30px' : '-10px', top: '14px', width: '18%', height: 'calc(100% - 12px)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' });
-    // All twelve custom achievement icons use the same fitted slot in both columns.
-    // object-fit: contain keeps the complete transparent PNG visible.
-    {
-      const iconImage = document.createElement('img');
-      iconImage.src = `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.webp`;
-      iconImage.alt = '';
-      iconImage.decoding = 'async';
-      iconSlot.textContent = achievement.icon;
-      iconSlot.style.fontSize = 'clamp(16px, 2vw, 32px)';
-      iconImage.style.position = 'absolute';
-      iconImage.onload = () => { if (iconSlot.firstChild?.nodeType === Node.TEXT_NODE) iconSlot.firstChild.remove(); };
-      iconImage.onerror = () => iconImage.remove();
-      Object.assign(iconImage.style, { display: 'block', width: '88%', height: '88%', objectFit: 'contain', objectPosition: 'center', flex: '0 0 auto', pointerEvents: 'none' });
-      iconSlot.appendChild(iconImage);
-    }
+    const item = document.createElement('article');
+    item.className = `achievement-item ${isUnlocked ? 'is-unlocked' : 'is-locked'}`;
+    item.dataset.achievement = achievement.id;
+    item.setAttribute('role', 'listitem');
+    item.setAttribute('aria-label', `${hidden ? 'Скрытое достижение' : achievement.title}: ${isUnlocked ? 'получено' : 'закрыто'}`);
+    const icon = document.createElement('div'); icon.className = 'achievement-item-icon';
+    icon.setAttribute('aria-hidden', 'true'); icon.textContent = achievement.icon;
+    const image = document.createElement('img');
+    image.src = `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.webp`;
+    image.alt = ''; image.decoding = 'async';
+    image.onload = () => { if (icon.firstChild?.nodeType === Node.TEXT_NODE) icon.firstChild.remove(); };
+    image.onerror = () => image.remove();
+    icon.appendChild(image);
     const copy = document.createElement('div'); copy.className = 'achievement-item-copy';
-    Object.assign(copy.style, {
-      position: 'absolute', left: col === 0 ? '30.5%' : '18.5%', top: col === 0 ? '18%' : '12%', width: col === 0 ? '76%' : '79%',
-      height: '76%', minWidth: '0', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      gap: '2px', transform: 'rotate(-0.7deg)', transformOrigin: 'left center', overflow: 'hidden', zIndex: '3', color: 'inherit',
-    });
-    const title = document.createElement('div');
-    title.className = 'achievement-item-title';
+    const title = document.createElement('div'); title.className = 'achievement-item-title';
     title.textContent = hidden ? '???' : achievement.title;
-    Object.assign(title.style, {
-      font: '700 clamp(8px, 1.0vw, 15px) Arial,sans-serif', lineHeight: '1.12', width: '100%', color: 'inherit',
-      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', boxSizing: 'border-box',
-    });
     const description = document.createElement('div'); description.className = 'achievement-item-description';
-    if (hidden) description.textContent = 'Скрытое достижение. Условия неизвестны.';
-    else if (achievement.id === 'director') {
-      description.append(document.createTextNode('Завершить прохождение за архетип, отличный'));
-      description.append(document.createElement('br'));
-      description.append(document.createTextNode('от архетипа первого прохождения.'));
-    } else description.textContent = achievement.description;
-    Object.assign(description.style, {
-      font: '500 clamp(7px, .72vw, 11px) Arial,sans-serif', lineHeight: '1.15', width: '100%', color: 'inherit',
-      maxHeight: '2.3em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: '2',
-      WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere', boxSizing: 'border-box',
-    });
-    copy.append(title, description); item.append(iconSlot, copy); achievementList.appendChild(item);
+    description.textContent = hidden ? 'Скрытое достижение. Условия неизвестны.' : achievement.description;
+    copy.append(title, description); item.append(icon, copy); list.appendChild(item);
   });
-  const close = document.createElement('button'); close.type = 'button'; close.textContent = 'НАЗАД';
-  Object.assign(close.style, { position: 'absolute', bottom: '1.2%', left: '50%', transform: 'translateX(-50%)', zIndex: '2', padding: '8px 22px', border: '1px solid #bdeaff', background: 'rgba(3,18,42,.92)', color: '#fff', font: '700 12px Arial,sans-serif', letterSpacing: '1px', cursor: 'pointer', boxShadow: '0 0 12px rgba(0,190,255,.3)' });
-  close.className = 'achievement-back';
-  close.addEventListener('click', () => overlay.remove()); panel.appendChild(close);
-  const count = document.createElement('div'); count.className = 'achievement-count'; count.textContent = `${unlocked.length} / ${ACHIEVEMENTS.length}`;
-  Object.assign(count.style, { position: 'absolute', right: '3%', bottom: '1.8%', color: '#fff', font: '700 clamp(9px, .8vw, 13px) Arial,sans-serif', textShadow: '0 1px 4px #000' }); panel.appendChild(count);
-  overlay.append(background, panel); document.body.appendChild(overlay);
-  // Keep the results hidden briefly, then fade in the campus and achievement book together.
-  window.setTimeout(() => {
-    if (!overlay.isConnected) return;
-    background.style.opacity = '1';
-    panel.style.opacity = '1';
-    window.setTimeout(() => {
-      if (overlay.isConnected) overlay.style.background = 'transparent';
-    }, 680);
-  }, 220);
+  const footer = document.createElement('footer'); footer.className = 'achievement-footer';
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'achievement-back';
+  close.textContent = 'НАЗАД';
+  const trigger = document.activeElement as HTMLElement | null;
+  close.addEventListener('click', () => { overlay.remove(); trigger?.focus({ preventScroll: true }); });
+  const count = document.createElement('div'); count.className = 'achievement-count';
+  count.textContent = `${ACHIEVEMENTS.filter(achievement => unlocked.includes(achievement.id)).length} / ${ACHIEVEMENTS.length}`;
+  footer.append(close, count); panel.append(heading, list, footer); overlay.append(background, panel);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => { overlay.classList.add('is-visible'); close.focus({ preventScroll: true }); });
 }
 const SECRET_MALE_PRESET = 5; // индекс 5 — Карл Джонсон
 const DEVIL_MALE_PRESET = 6; // индекс 6 — Мик Томпсон
@@ -416,7 +355,7 @@ function ensureNowPlayingCard(): HTMLElement {
   card.className = 'now-playing-card';
   card.setAttribute('aria-live', 'polite');
   card.setAttribute('aria-label', 'Сейчас играет');
-  card.innerHTML = `<div class="np-cover" aria-hidden="true"><img class="np-cover-image" alt="" /><span class="np-cover-mark">♫</span><span class="np-equalizer"><i></i><i></i><i></i><i></i></span></div><div class="np-info"><div class="np-kicker">NOW PLAYING</div><a class="np-title-link" target="_blank" rel="noopener noreferrer"><div class="np-title"></div></a><div class="np-artist"></div><div class="np-links"><a class="np-spotify" target="_blank" rel="noopener noreferrer"><span class="np-spotify-dot">●</span> POWERED BY <strong>Spotify</strong><span class="np-external">↗</span></a><a class="np-yandex" target="_blank" rel="noopener noreferrer">Яндекс Музыка ↗</a></div></div><button class="np-close" type="button" aria-label="Скрыть музыкальную карточку">×</button>`;
+  card.innerHTML = `<div class="np-cover" aria-hidden="true"><img class="np-cover-image" alt="" /><span class="np-cover-mark">♫</span><span class="np-equalizer"><i></i><i></i><i></i><i></i></span></div><div class="np-info"><div class="np-kicker">NOW PLAYING</div><a class="np-title-link" target="_blank" rel="noopener noreferrer"><div class="np-title"></div></a><div class="np-artist"></div><div class="np-links"><a class="np-spotify" target="_blank" rel="noopener noreferrer"><span class="np-spotify-dot">●</span> <span class="np-powered">POWERED BY</span> <strong>Spotify</strong><span class="np-external">↗</span></a><a class="np-yandex" target="_blank" rel="noopener noreferrer">Яндекс Музыка ↗</a></div></div><button class="np-close" type="button" aria-label="Скрыть музыкальную карточку">×</button>`;
   document.body.appendChild(card);
   card.querySelector('.np-close')?.addEventListener('click', () => {
     card.classList.remove('is-visible');
@@ -465,7 +404,7 @@ function showNowPlaying(track: NowPlayingTrack): void {
       console.warn(`Album cover could not be loaded: ${track.cover}`);
     };
     if (track.cover) {
-      coverImage.sizes = '(max-width: 600px) 58px, 68px';
+      coverImage.sizes = '(pointer: coarse) and (max-width: 1100px) 36px, (max-width: 600px) 58px, 68px';
       coverImage.srcset = `${track.cover.replace('.webp', '-128.webp')} 128w, ${track.cover.replace('.webp', '-256.webp')} 256w, ${track.cover} 1254w`;
       coverImage.src = track.cover;
     } else {
@@ -529,7 +468,7 @@ archetypeMusic.loop = true;
 archetypeMusic.volume = 0;
 let archetypeMusicFadeTimer: number | undefined;
 let corridorMusicStarted = false;
-const classroomMusic = createAudio('/audio/classroom/C418-Aria_Math.mp3');
+const classroomMusic = createAudio('/audio/classroom/C418-Aria_Math-clean.mp3');
 const endingMusic = createAudio('/audio/endings/gta-iv-ending.mp3');
 endingMusic.preload = 'none';
 endingMusic.loop = true;
@@ -578,15 +517,17 @@ function fadeOutCorridorAudio(duration = 1400): Promise<void> {
 let mobileClassroomStarted = false;
 let mobileClassroomWanted = false;
 function startClassroomMusic(): void {
-  if (isPhoneLayout()) {
+  const phone = isPhoneLayout();
+  if (phone) {
     if (mobileClassroomStarted && !classroomMusic.paused) return;
     mobileClassroomStarted = true;
   }
   prepareAudio(classroomMusic);
   if (classroomMusicFadeTimer !== undefined) window.clearInterval(classroomMusicFadeTimer);
-  classroomMusic.pause(); classroomMusic.currentTime = 0; classroomMusic.volume = 0;
+  classroomMusic.pause(); classroomMusic.currentTime = 0; classroomMusic.volume = phone ? 0.62 : 0;
   void classroomMusic.play().then(() => {
     showNowPlaying({ title: 'Aria Math', artist: 'C418', spotifyQuery: 'C418 Aria Math', mood: 'green' });
+    if (phone) return;
     const start = performance.now();
     classroomMusicFadeTimer = window.setInterval(() => {
       const progress = Math.min(1, (performance.now() - start) / 600);
@@ -832,6 +773,7 @@ function saveSelection(): void {
   gameStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
 }
 function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket' | 'corridor' | 'classroom-intro' | 'classroom-gallery' | 'classroom-classmates' | 'teacher-intro' | 'exam'): void {
+  if (screen === 'start') syncMenuAchievementsButton();
   if (screen !== 'character') stopCharacterLoading();
   const showStart = screen === 'start';
   const showCharacter = screen === 'character';
@@ -966,6 +908,12 @@ function showToast(message: string): void {
 }
 
 const warmSelection = () => warmImages([...selectionAssets, selectedSpritePath()]);
+const menuAchievementsButton = document.getElementById('start-achievements-button');
+const warmAchievements = () => warmImages(achievementAssets);
+menuAchievementsButton?.addEventListener('pointerenter', warmAchievements);
+menuAchievementsButton?.addEventListener('focus', warmAchievements);
+menuAchievementsButton?.addEventListener('touchstart', warmAchievements, { passive: true });
+menuAchievementsButton?.addEventListener('click', () => { void showAchievementsPage('menu'); });
 startButton?.addEventListener('pointerenter', warmSelection);
 startButton?.addEventListener('focus', warmSelection);
 startButton?.addEventListener('touchstart', warmSelection, { passive: true });
@@ -3346,6 +3294,7 @@ window.addEventListener('game:exam-scene-finished', (event: Event) => {
 });
 
 renderSelection();
+syncMenuAchievementsButton();
 
 setupPhoneOrientation();
 document.addEventListener('click', () => {

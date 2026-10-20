@@ -1,5 +1,29 @@
 import { test, expect } from '@playwright/test';
 
+test('classroom MP3 has a valid range response and decodes from a direct gesture', async ({ page }) => {
+  const source = 'audio/classroom/C418-Aria_Math-clean.mp3';
+  const response = await page.request.get(source, { headers: { Range: 'bytes=0-1023' } });
+  expect(response.status()).toBe(206);
+  expect(response.headers()['content-type']).toContain('audio/mpeg');
+  const bytes = await response.body();
+  expect(bytes[0]).toBe(0xff);
+  expect(bytes[1] & 0xe0).toBe(0xe0);
+  await page.goto('./');
+  await page.evaluate(source => {
+    const button = document.createElement('button');
+    button.id = 'music-decode-start'; button.textContent = 'Play classroom test';
+    Object.assign(button.style, { position: 'fixed', zIndex: '2147483647', top: '0' });
+    const audio = new Audio(source); audio.id = 'music-decode-check';
+    document.body.append(button, audio);
+    button.onclick = () => { void audio.play(); };
+  }, source);
+  await page.locator('#music-decode-start').click();
+  const audio = page.locator('#music-decode-check');
+  await expect.poll(() => audio.evaluate((el: HTMLAudioElement) => el.currentTime)).toBeGreaterThan(0.1);
+  expect(await audio.evaluate((el: HTMLAudioElement) => el.error)).toBeNull();
+  expect(await audio.evaluate((el: HTMLAudioElement) => el.duration)).toBeCloseTo(309.936, 1);
+});
+
 test('optimized videos decode, advance and reach their actual end in Chromium', async ({ page }) => {
   await page.goto('./');
   for (const [path, width, height, duration] of [

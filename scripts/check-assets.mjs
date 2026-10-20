@@ -28,4 +28,8 @@ for (const folder of [...Array.from({ length: 5 }, (_, i) => `student_boy${i + 1
 for (let i = 1; i <= 12; i++) {
   assert(existsSync(join(root, 'assets/achievements/icons', `achievement-${String(i).padStart(2, '0')}.webp`)));
 }
+// Safari cannot reliably sniff an MP3 prefixed with HTML (the former classroom file).
+const classroomAudio = readFileSync(join(root, 'audio/classroom/C418-Aria_Math-clean.mp3'));
+assert(classroomAudio[0] === 0xff && (classroomAudio[1] & 0xe0) === 0xe0,
+  'Classroom music must start with an MPEG frame, without HTML or embedded cover art');
 console.log(`Validated ${referenced.size} static asset references, all character variants and achievement icons.`);

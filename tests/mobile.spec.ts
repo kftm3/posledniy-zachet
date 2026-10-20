@@ -53,6 +53,12 @@ for (const viewport of [{ width: 874, height: 353 }, { width: 812, height: 320 }
     await page.setViewportSize(viewport);
     await selectCharacter(page);
     if (viewport.height === 402) await page.addStyleTag({ content: ':root{--phone-left:59px;--phone-right:59px;--phone-bottom:21px;}' });
+    const sprite = (await page.locator('#male-boy1-sprite').boundingBox())!;
+    const fourth = (await page.locator('.male-panel .portrait-slot[data-index="3"]').boundingBox())!;
+    const fifth = (await page.locator('.male-panel .portrait-slot[data-index="4"]').boundingBox())!;
+    expect(sprite.height).toBeGreaterThan(viewport.height);
+    expect(sprite.x + sprite.width / 2).toBeGreaterThan(fourth.x + fourth.width / 2);
+    expect(sprite.x + sprite.width / 2).toBeLessThan(fifth.x + fifth.width / 2);
     for (const gender of ['male', 'female']) {
       for (let n = 0; n < 5; n++) {
         const card = page.locator(`.${gender}-panel .portrait-slot[data-index="${n}"]`);
@@ -107,7 +113,7 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
   const errors = monitor(page);
   await page.addInitScript(() => {
     // Model iOS's stricter first-play rule: an asynchronous first play is rejected.
-    const state = { gesture: false, plays: [] as boolean[] };
+    const state = { gesture: false, plays: [] as boolean[], element: null as HTMLMediaElement | null };
     (window as any).__classroomPlay = state;
     document.addEventListener('click', () => {
       state.gesture = true;
@@ -116,6 +122,7 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
     const play = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
       if (this.src.includes('C418-Aria_Math')) {
+        state.element = this;
         state.plays.push(state.gesture);
         if (!state.gesture) return Promise.reject(new DOMException('User gesture required', 'NotAllowedError'));
       }
@@ -136,9 +143,14 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
   await expect(page.locator('#classroom-intro-screen')).toBeVisible();
   await settle(page);
   expect(await page.evaluate(() => (window as any).__classroomPlay.plays)).toEqual([true]);
+  await expect.poll(() => page.evaluate(() => (window as any).__classroomPlay.element.currentTime)).toBeGreaterThan(0.1);
+  expect(await page.evaluate(() => (window as any).__classroomPlay.element.error)).toBeNull();
+  expect(await page.evaluate(() => (window as any).__classroomPlay.element.volume)).toBeGreaterThan(0.5);
   await expect(page.locator('.np-title')).toHaveText('Aria Math', { ignoreCase: true });
   await expect(page.locator('.now-playing-card')).toHaveClass(/is-visible/);
-  expect((await page.locator('.now-playing-card').boundingBox())!.width).toBeLessThan(270);
+  expect((await page.locator('.now-playing-card').boundingBox())!.width).toBeLessThan(240);
+  expect((await page.locator('.now-playing-card').boundingBox())!.height).toBeLessThanOrEqual(60);
+  for (const selector of ['.np-title', '.np-artist', '.np-close', '.np-cover', '.np-links']) await contained(page.locator(selector), page.locator('.now-playing-card'));
   // Follow actual narrative controls through the gallery and teacher scene.
   for (let step = 0; step < 30 && !await page.locator('#teacher-intro-screen').isVisible(); step++) {
     for (const selector of ['#classroom-next', '#gallery-next', '#classmates-choices button', '#classmates-next']) {
@@ -147,7 +159,7 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
     }
     await page.waitForTimeout(80);
     if (await page.locator('#classroom-gallery-screen').isVisible()) {
-      expect(await page.locator('.classroom-gallery-background').evaluate(el => getComputedStyle(el).backgroundSize)).toBe('contain');
+      expect(await page.locator('.classroom-gallery-background').evaluate(el => getComputedStyle(el).backgroundSize)).toBe('cover');
     }
   }
   await expect(page.locator('#teacher-intro-screen')).toBeVisible();
@@ -197,15 +209,21 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await expect(page.locator('#cameo-overlay')).toBeVisible();
   await contained(page.locator('#cameo-dialogue-panel'));
   await contained(page.locator('#cameo-next'), page.locator('#cameo-dialogue-panel'));
-  expect(await page.locator('#cameo-scene-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
-  expect((await page.locator('.cameo-scene-frame').boundingBox())!.y).toBe(12);
+  expect(await page.locator('#cameo-scene-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
+  expect((await page.locator('.cameo-scene-frame').boundingBox())!.y).toBe(0);
   for (let n = 0; n < 3; n++) await page.locator('#cameo-next').tap();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:exam-scene-finished', {
     detail: { correct: 6, isExcellentEnding: true, archetype: 'ОТЛИЧНИК' },
   })));
+  const toast = page.locator('#achievement-unlock-toast');
+  await expect(toast).toHaveCSS('opacity', '1');
+  const toastBox = (await toast.boundingBox())!;
+  expect(toastBox.height).toBeLessThanOrEqual(50);
+  expect(toastBox.width).toBeLessThanOrEqual(224);
+  expect(toastBox.y).toBeGreaterThan(page.viewportSize()!.height - 70);
   await expect(page.locator('#excellent-ending')).not.toHaveClass(/is-blackout/);
   await contained(page.locator('#excellent-ending-next'));
-  expect(await page.locator('#excellent-ending-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
+  expect(await page.locator('#excellent-ending-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
   for (let n = 0; n < 25 && !await page.locator('#ending-credits-video').count(); n++) await page.locator('#excellent-ending-next').tap();
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
   await expect(page.locator('#final-result-screen')).toBeVisible();
@@ -221,7 +239,7 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await page.getByRole('button', { name: 'ДОСТИЖЕНИЯ', exact: true }).tap();
   await expect(page.locator('.achievements-book')).toHaveCSS('opacity', '1');
   await contained(page.locator('.achievements-book'));
-  const back = page.locator('.achievement-back');
+  const back = page.locator('#achievements-page-overlay .achievement-back');
   await contained(back);
   await expect(page.locator('.achievement-item')).toHaveCount(12);
   const list = page.locator('.achievements-list');

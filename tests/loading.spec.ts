@@ -61,7 +61,7 @@ test('corridor audio is prepared early and the auditorium waits for its delayed 
   await expect(page.locator('#corridor-screen')).toBeVisible();
   await expect.poll(() => requests.some(path => path.endsWith('/classroom-last-exam-background.webp'))).toBe(true);
   // Future music must not take bandwidth away from a still-blocked entry background.
-  expect(requests.some(path => path.endsWith('/C418-Aria_Math.mp3'))).toBe(false);
+  expect(requests.some(path => path.endsWith('/C418-Aria_Math-clean.mp3'))).toBe(false);
   for (let i = 0; i < 5; i++) await page.locator('#corridor-next').click();
   await page.locator('#corridor-choices button').first().click();
   await page.locator('#corridor-exit').click();
@@ -72,7 +72,7 @@ test('corridor audio is prepared early and the auditorium waits for its delayed 
   await expect(page.locator('#asset-loading-status')).toBeHidden();
   const loads: string[] = await page.evaluate(() => (window as any).__mediaLoads);
   expect(loads.filter(path => path.endsWith('/archetype-excellent.mp3'))).toHaveLength(1);
-  expect(loads.filter(path => path.endsWith('/C418-Aria_Math.mp3'))).toHaveLength(1);
+  expect(loads.filter(path => path.endsWith('/C418-Aria_Math-clean.mp3'))).toHaveLength(1);
   expect(errors).toEqual([]);
 });
 
@@ -100,10 +100,10 @@ test('classroom music is prepared during corridor dialogue once its background i
   await page.locator('#ticket-start').click();
   await page.locator('#intro-video-skip').click();
   await expect(page.locator('#corridor-screen')).toBeVisible();
-  await expect.poll(() => requests.some(path => path.endsWith('/C418-Aria_Math.mp3'))).toBe(true);
+  await expect.poll(() => requests.some(path => path.endsWith('/C418-Aria_Math-clean.mp3'))).toBe(true);
   await expect(page.locator('#classroom-intro-screen')).toBeHidden();
   expect(requests.findIndex(path => path.endsWith('/classroom-last-exam-background.webp')))
-    .toBeLessThan(requests.findIndex(path => path.endsWith('/C418-Aria_Math.mp3')));
+    .toBeLessThan(requests.findIndex(path => path.endsWith('/C418-Aria_Math-clean.mp3')));
 });
 
 test('corridor follows each dialogue emotion and cancels a stale replacement', async ({ page }) => {
@@ -173,7 +173,7 @@ test('results and achievements are prepared before opening and wait for slow art
   const achievements = new Promise<void>(resolve => { releaseAchievements = resolve; });
   await selectCharacter(page);
   await page.route('**/final-screen/passbook.webp', async route => { await book; await route.continue(); });
-  await page.route('**/achievements/achievement-panel.webp', async route => { await achievements; await route.continue(); });
+  await page.route('**/achievements/campus-background.webp', async route => { await achievements; await route.continue(); });
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:exam-scene-finished', { detail: { correct: 6, isExcellentEnding: true } })));
   await expect.poll(() => requests.some(path => path.endsWith('/final-screen/passbook.webp'))).toBe(true);
   await expect(page.locator('#final-result-screen')).toHaveCount(0);
@@ -185,7 +185,7 @@ test('results and achievements are prepared before opening and wait for slow art
     await page.locator('#excellent-ending-next').click();
   }
   await expect(page.locator('#ending-credits-video')).toBeVisible();
-  await expect.poll(() => requests.some(path => path.endsWith('/achievements/achievement-panel.webp'))).toBe(true);
+  await expect.poll(() => requests.some(path => path.endsWith('/achievements/campus-background.webp'))).toBe(true);
   const loads = await page.evaluate(() => (window as any).__creditsLoads);
   expect(loads).toHaveLength(1);
   expect(loads[0].attached).toBe(false);
