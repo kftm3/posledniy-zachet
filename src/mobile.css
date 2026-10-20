@@ -1,0 +1,166 @@
+/* Phone-only layout. Desktop presentation stays in style.css. */
+@media (pointer: coarse) and (max-width: 1100px) {
+  :root { --phone-left:max(12px,env(safe-area-inset-left)); --phone-right:max(12px,env(safe-area-inset-right)); --phone-bottom:max(6px,env(safe-area-inset-bottom)); }
+  html,body,#app { height:100dvh; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  .game-root { height:100dvh; }
+  #app .game-stage { width:100%; height:100%; }
+  button,a,input { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  #player-form input { font-size:16px; }
+  #app button:hover { transform:none; }
+
+  /* Fit both portrait rows above the dedicated navigation footer. */
+  #character-screen .selection-heading { top:6px; left:var(--phone-left); width:24%; transform:none; }
+  #character-screen .selection-heading span { font-size:clamp(17px,2.9vw,27px); }
+  #character-screen .selector-panel { top:18% !important; bottom:calc(56px + var(--phone-bottom)) !important; width:calc((100% - var(--phone-left) - var(--phone-right) - 80px)/2) !important; height:calc(82% - 56px - var(--phone-bottom)) !important; aspect-ratio:auto !important; transform:none !important; }
+  #character-screen .male-panel { left:var(--phone-left) !important; right:auto !important; }
+  #character-screen .female-panel { right:var(--phone-right) !important; left:auto !important; }
+  #character-screen .panel-art { width:100%; height:100%; object-fit:fill; }
+  #character-screen .character-full-sprite { left:38% !important; right:auto !important; bottom:0 !important; height:100% !important; max-height:none !important; max-width:none !important; transform:none !important; }
+  #character-screen .female-panel .character-full-sprite { left:8% !important; }
+  #character-screen .slot-hitboxes { top:auto !important; bottom:5px !important; left:6% !important; right:auto !important; width:88% !important; height:54px !important; display:flex !important; gap:4px !important; transform:none !important; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; overscroll-behavior-x:contain; }
+  #character-screen .portrait-slot { flex:0 0 calc((100% - 16px)/5); width:auto !important; min-width:0; height:100% !important; padding:1px; }
+  #character-screen .arrow-hit { top:auto !important; bottom:10px !important; height:44px !important; width:28px !important; z-index:8; }
+  #character-screen .arrow-left { left:-10px !important; }
+  #character-screen .arrow-right { right:-10px !important; left:auto !important; }
+  #character-screen .character-continue { right:var(--phone-right); bottom:var(--phone-bottom); width:auto; min-width:170px; min-height:36px; padding:6px 22px; font-size:13px; }
+  #character-loading { top:6px; bottom:auto; left:auto; right:var(--phone-right); transform:none; width:44%; padding:6px 10px; }
+  #character-loading .character-loading-books { display:none; }
+  #character-loading p { margin:0 0 4px; font-size:11px; line-height:1.2; }
+
+  /* Stable three rows with unclipped, direct touch targets. */
+  #skills-screen .skills-header { top:7px; left:var(--phone-left); right:var(--phone-right); width:auto; display:grid; grid-template-columns:1fr auto; gap:3px 12px; text-align:left; }
+  #skills-screen .skills-header h1 { justify-self:start; font-size:17px; transform:none; }
+  #skills-screen .skills-header p { grid-column:1; margin:0; font-size:11px; }
+  #skills-screen .points-counter { grid-column:2; grid-row:1/3; font-size:11px; padding:5px 10px; }
+  #skills-screen .skills-layout { top:64px; bottom:calc(46px + var(--phone-bottom)); left:var(--phone-left); right:var(--phone-right); gap:8px; grid-template-columns:minmax(0,1fr) minmax(165px,25%); grid-template-rows:minmax(0,1fr); }
+  #skills-screen .skills-board { padding:6px; min-height:0; }
+  #skills-screen .skills-board-title { display:none; }
+  #skills-screen .skills-grid { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(0,1fr)); gap:6px; }
+  #skills-screen .skill-card { min-height:0; grid-template-columns:24px minmax(0,1fr) 84px; gap:5px; padding:5px; clip-path:none; border-radius:6px; }
+  #skills-screen .skill-icon-wrap { width:24px; }
+  #skills-screen .skill-icon span { font-size:23px; }
+  #skills-screen .skill-copy h2 { margin:0 0 3px; font-size:12px; }
+  #skills-screen .skill-copy p { font-size:10.5px; line-height:1.2; margin:0; }
+  #skills-screen .skill-control { gap:2px; }
+  #skills-screen .skill-meter i { height:4px; }
+  #skills-screen .skill-actions { display:grid; grid-template-columns:34px 12px 34px; gap:2px; align-items:center; }
+  #skills-screen .skill-actions button { width:34px; height:38px; clip-path:none; border-radius:5px; font-size:21px; transform:none; }
+  #skills-screen .skill-actions strong { font-size:13px; }
+  #skills-screen .archetype-panel { padding:7px; overflow:auto; }
+  #skills-screen .archetype-ribbon { width:100%; font-size:9px; padding:4px 1px; transform:none; }
+  #skills-screen .archetype-emblem { width:32px; margin:8px auto; font-size:21px; border-width:2px; }
+  #skills-screen .archetype-panel h2 { font-size:15px; margin-bottom:5px; }
+  #skills-screen .archetype-panel p { font-size:11px; line-height:1.3; margin-bottom:5px; flex-shrink:0; }
+  #skills-screen .archetype-bonus,#skills-screen .skill-status { font-size:10px; }
+  #skills-screen .archetype-panel>small { font-size:9px; }
+  #skills-screen .skills-back,#skills-screen .skills-continue { bottom:var(--phone-bottom); min-height:36px; padding:6px 20px; font-size:12px; }
+  #skills-screen .skills-back { left:var(--phone-left); }
+  #skills-screen .skills-continue { right:var(--phone-right); }
+  #skills-screen .skills-warning { bottom:10px; font-size:10px; left:25%; right:25%; }
+
+  #ticket-screen .ticket-heading { top:6px; left:var(--phone-left); width:auto; }
+  #ticket-screen .ticket-heading h1 { flex-direction:row; gap:.4em; font-size:16px; transform:none; }
+  #ticket-screen .ticket-heading p { display:none; }
+  #ticket-screen .ticket-wrap { top:38px; width:min(calc((100dvh - 84px - var(--phone-bottom))*2.0688),calc(100vw - var(--phone-left) - var(--phone-right) - 12px)); height:auto; max-height:none; transform:translateX(-50%); }
+  #ticket-screen .ticket-wrap:hover,#ticket-screen .ticket-wrap:focus-within { transform:translateX(-50%); }
+  #ticket-screen .ticket-field-value { font-size:11px; }
+  #ticket-screen .ticket-archetype-name { font-size:12px; }
+  #ticket-screen .ticket-archetype-description { top:43%; height:31%; padding:3px; font-size:11px; line-height:1.2; display:block; overflow:auto; }
+  #ticket-screen .ticket-back,#ticket-screen .ticket-start { bottom:var(--phone-bottom); min-height:34px; padding:6px 18px; font-size:12px; }
+  #ticket-screen .ticket-back { left:var(--phone-left); }
+  #ticket-screen .ticket-start { right:var(--phone-right); }
+
+  /* The same frame, type and sprite scale for corridor, teacher and exam. */
+  #app .corridor-dialogue-layout { position:absolute !important; left:var(--phone-left) !important; right:var(--phone-right) !important; bottom:var(--phone-bottom) !important; width:auto !important; height:clamp(128px,40dvh,166px) !important; min-height:0 !important; max-height:none !important; grid-template-columns:1fr !important; grid-template-rows:minmax(0,1fr) !important; padding:0 !important; margin:0 !important; transform:none !important; background-size:100% 128% !important; background-position:center !important; }
+  #app .corridor-dialogue-left { position:relative !important; display:flex !important; flex-direction:column; width:100% !important; height:100%; min-height:0; padding:14px 22px 12px !important; }
+  #app .corridor-player-name { position:static !important; flex:none; width:max-content !important; max-width:75% !important; min-width:0 !important; height:auto !important; min-height:18px !important; transform:none !important; padding:3px 12px !important; margin:0 0 4px !important; font-size:11px !important; line-height:1.2 !important; }
+  #app .corridor-dialogue-text { position:static !important; left:auto !important; right:auto !important; width:100% !important; max-width:100% !important; min-height:0; flex:1; font-size:13px !important; line-height:1.35 !important; transform:none !important; overflow:auto; text-align:left !important; margin:0 !important; }
+  #app .corridor-dialogue-controls { position:static !important; display:flex !important; align-items:center; justify-content:space-between; flex:none; width:100% !important; height:30px; min-height:0; margin:5px 0 0 !important; }
+  #app .corridor-progress { font-size:9px; }
+  #app .corridor-next,#app .corridor-exit { min-height:30px; font-size:11px; padding:5px 15px; }
+  #corridor-screen .corridor-dialogue-layout:has(#corridor-choices:not(.is-hidden)) { grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; }
+  #corridor-screen #corridor-choices { padding:10px 22px 10px 0 !important; gap:4px !important; }
+  #corridor-screen #corridor-choices p { display:none; }
+  #corridor-screen #corridor-choices button { min-height:32px !important; max-height:none !important; padding:5px 9px !important; font-size:11px !important; line-height:1.15 !important; transform:none !important; }
+  #corridor-screen #corridor-exit { right:calc(var(--phone-right) + 22px); bottom:calc(var(--phone-bottom) + 12px); }
+  #app .corridor-topline,#app .classroom-topline { top:8px; left:var(--phone-left); right:var(--phone-right); font-size:9px; }
+  #app .corridor-character-sprite,#app .corridor-friend-sprite,#teacher-intro-screen .teacher-scene-sprite,#teacher-intro-screen .teacher-hero-sprite,#exam-screen .exam-teacher-sprite,#exam-screen .exam-hero-sprite { height:100% !important; max-height:none !important; width:auto !important; max-width:43% !important; bottom:-12% !important; transform:none !important; opacity:1; object-fit:contain; object-position:center bottom; }
+  #app .corridor-character-sprite,#teacher-intro-screen .teacher-scene-sprite,#exam-screen .exam-teacher-sprite { left:8% !important; right:auto !important; }
+  #app .corridor-friend-sprite,#teacher-intro-screen .teacher-hero-sprite,#exam-screen .exam-hero-sprite { right:8% !important; left:auto !important; transform:scaleX(-1) !important; }
+  #teacher-intro-screen .teacher-dialogue-left { display:grid !important; grid-template-columns:1fr auto !important; grid-template-rows:20px minmax(0,1fr) auto !important; grid-template-areas:'speaker controls' 'text text' 'choices choices'; gap:4px; }
+  #teacher-intro-screen #teacher-speaker { grid-area:speaker !important; }
+  #teacher-intro-screen #teacher-dialogue-text { grid-area:text !important; }
+  #teacher-intro-screen .teacher-dialogue-controls { grid-area:controls !important; margin:0 !important; height:24px; }
+  #teacher-intro-screen #teacher-choices { grid-area:choices !important; display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin:0; padding:0; }
+  #teacher-intro-screen #teacher-choices.is-hidden { display:none !important; }
+  #teacher-intro-screen #teacher-choices button { min-height:34px !important; padding:5px 8px !important; font-size:11px !important; line-height:1.15 !important; }
+
+  #exam-screen { touch-action:manipulation; }
+  #exam-screen.exam-paper-open .exam-dialogue-layout { height:min(250px,calc(100dvh - 36px)) !important; }
+  #exam-screen.exam-paper-open .exam-dialogue-left { display:grid !important; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) !important; grid-template-rows:20px minmax(54px,1fr) 38px 18px 28px !important; grid-template-areas:'speaker speaker' 'question answers' 'actions answers' 'status status' 'controls controls'; gap:5px 12px; }
+  #exam-screen.exam-paper-open #exam-speaker { grid-area:speaker !important; }
+  #exam-screen.exam-paper-open #exam-dialogue-text { grid-area:question !important; }
+  #exam-screen.exam-paper-open .exam-answer-list { grid-area:answers; position:static !important; width:100% !important; top:auto !important; bottom:auto !important; left:auto !important; right:auto !important; display:grid; grid-template-rows:repeat(3,minmax(34px,1fr)); gap:5px !important; }
+  #exam-screen .exam-answer-button { min-height:34px !important; padding:5px 9px !important; font-size:12px !important; line-height:1.2 !important; transform:none; }
+  #exam-screen.exam-paper-open .exam-paper-actions { grid-area:actions; position:static !important; width:100% !important; transform:none !important; display:flex !important; flex-wrap:nowrap; gap:5px !important; margin:0; }
+  #exam-screen .exam-paper-actions button { width:auto !important; flex:1; min-width:0; min-height:34px !important; padding:4px 5px !important; font-size:10px !important; line-height:1.15 !important; text-align:center !important; }
+  #exam-screen.exam-paper-open .exam-action-status { grid-area:status; position:static !important; width:100%; max-width:100%; min-height:0; margin:0; font-size:10px; }
+  #exam-screen.exam-paper-open .exam-dialogue-controls { grid-area:controls !important; margin:0 !important; height:28px; }
+
+  #app .classroom-gallery-background { inset:0; background-size:contain; background-position:center top; animation:none !important; transform:none !important; }
+  #cameo-overlay .cameo-scene-frame { top:12px; }
+  #cameo-overlay .cameo-scene-image,#excellent-ending .excellent-ending-image { object-fit:contain; object-position:center center; transform:none !important; animation:none !important; }
+  #cameo-overlay .cameo-dialogue { left:var(--phone-left) !important; right:var(--phone-right) !important; bottom:var(--phone-bottom) !important; width:auto !important; height:clamp(128px,40dvh,166px) !important; margin:0; }
+  #excellent-ending .excellent-ending-period { top:8px; left:var(--phone-left); font-size:12px; }
+
+  .now-playing-card { top:8px; right:var(--phone-right); width:min(245px,35vw); min-height:58px; padding:5px 25px 5px 5px; gap:7px; }
+  .now-playing-card .np-cover { flex:0 0 38px; width:38px; min-width:38px; height:38px; }
+  .now-playing-card .np-kicker { font-size:7px; }
+  .now-playing-card .np-title { font-size:12px; }
+  .now-playing-card .np-artist { font-size:10px; }
+  .now-playing-card .np-links { font-size:8px; gap:4px; }
+  .now-playing-card .np-info { gap:2px; }
+  .now-playing-card .np-spotify { margin-top:0; font-size:7px; }
+  .now-playing-card .np-spotify strong { font-size:8px; }
+  #achievement-unlock-toast { left:var(--phone-left) !important; bottom:var(--phone-bottom) !important; width:min(270px,40vw) !important; min-height:60px !important; padding:7px !important; gap:7px !important; z-index:99991 !important; }
+  #achievement-unlock-toast>div:first-child { flex:0 0 40px !important; width:40px !important; height:40px !important; }
+  #achievement-unlock-toast>div:nth-child(2) { gap:3px !important; }
+  #achievement-unlock-toast>div:nth-child(2)>div:first-child { font-size:7px !important; letter-spacing:.6px !important; }
+  #achievement-unlock-toast>div:nth-child(2)>div:nth-child(2) { font-size:12px !important; }
+  #achievement-unlock-toast>div:nth-child(2)>div:nth-child(3) { font-size:9px !important; }
+
+  #final-result-screen .final-result-book { width:min(calc((100dvh - 70px - var(--phone-bottom))*1.7758),calc(100vw - var(--phone-left) - var(--phone-right) - 20px)) !important; max-height:none !important; flex:none !important; margin-bottom:calc(36px + var(--phone-bottom)); transform:none !important; }
+  #final-result-screen .final-result-portrait { left:10.5% !important; top:31.5% !important; height:37% !important; }
+  #final-result-screen [data-field='surname'],#final-result-screen [data-field='given-name'],#final-result-screen [data-field='group'] { left:28.2% !important; width:18% !important; }
+  #final-result-screen [data-field='correct'] { left:70.8% !important; }
+  #final-result-screen [data-field='total'] { left:75.7% !important; }
+  #final-result-screen [data-field='archetype'] { left:72.4% !important; }
+  #final-result-screen [data-field='duration'] { left:71.3% !important; width:10% !important; }
+  #final-result-screen [data-field='date'] { left:61.5% !important; width:27.2% !important; }
+  #final-result-screen>img { transform:none !important; animation:none !important; object-fit:contain !important; }
+  #final-result-actions { bottom:var(--phone-bottom) !important; width:calc(100% - var(--phone-left) - var(--phone-right)) !important; gap:6px !important; flex-wrap:nowrap !important; }
+  #final-result-actions button { min-height:34px !important; padding:7px 10px !important; font-size:10px !important; }
+
+  #achievements-page-overlay { padding:8px var(--phone-right) max(8px,var(--phone-bottom)) var(--phone-left) !important; }
+  #achievements-page-overlay>img { inset:0 !important; width:100% !important; height:100% !important; object-fit:contain !important; animation:none !important; transform:none !important; }
+  #achievements-page-overlay .achievements-book { width:100% !important; height:100% !important; max-height:none !important; aspect-ratio:auto !important; transform:none !important; background:rgba(4,17,39,.96); border:1px solid #83baff; border-radius:10px; }
+  #achievements-page-overlay .achievements-book::before { content:'ДОСТИЖЕНИЯ'; position:absolute; top:10px; left:14px; color:white; font:800 16px 'Segoe UI',sans-serif; }
+  #achievements-page-overlay .achievements-book>img { display:none; }
+  #achievements-page-overlay .achievements-list { position:absolute; inset:40px 10px 48px; display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start; gap:7px; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  #achievements-page-overlay .achievement-item { position:static !important; display:grid; grid-template-columns:42px minmax(0,1fr); align-items:center; gap:8px; width:auto !important; height:auto !important; min-height:65px; padding:7px; border:1px solid #365783; border-radius:6px; opacity:1 !important; filter:none !important; }
+  #achievements-page-overlay .achievement-item-icon { position:relative !important; left:auto !important; top:auto !important; width:40px !important; height:40px !important; }
+  #achievements-page-overlay .achievement-item-copy { position:static !important; width:auto !important; height:auto !important; gap:3px !important; transform:none !important; overflow:visible !important; }
+  #achievements-page-overlay .achievement-item-title { font:700 12px/1.25 'Segoe UI',sans-serif !important; white-space:normal !important; overflow:visible !important; }
+  #achievements-page-overlay .achievement-item-description { font:500 11px/1.3 'Segoe UI',sans-serif !important; max-height:none !important; display:block !important; overflow:visible !important; -webkit-line-clamp:unset !important; }
+  #achievements-page-overlay .achievement-back { bottom:7px !important; min-height:32px; padding:6px 24px !important; font-size:11px !important; }
+  #achievements-page-overlay .achievement-count { bottom:15px !important; font-size:11px !important; }
+
+  .orientation-overlay { display:none; }
+  @media (orientation:portrait) {
+    #orientation-overlay { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; position:fixed; inset:0; padding:30px; z-index:2147483647; background:rgba(2,9,24,.97); border:0; border-radius:0; font:700 22px/1.5 'Segoe UI',sans-serif; text-align:center; }
+    #orientation-overlay::before { content:''; display:block; width:48px; height:86px; border:3px solid #9cd8ff; border-radius:10px; box-shadow:inset 0 -10px 0 #1b5482; animation:phone-turn 2.8s ease-in-out infinite; }
+    #orientation-overlay::after { content:'Игра рассчитана на горизонтальное положение.'; max-width:290px; font:400 15px/1.5 'Segoe UI',sans-serif; color:#b4c7df; }
+  }
+  @keyframes phone-turn { 0%,20% { transform:rotate(0); } 55%,85% { transform:rotate(90deg); } 100% { transform:rotate(0); } }
+  @media (prefers-reduced-motion:reduce) { #orientation-overlay::before { animation:none; transform:rotate(90deg); } }
+}

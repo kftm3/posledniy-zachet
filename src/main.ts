@@ -1,4 +1,6 @@
 import './style.css';
+import './mobile.css';
+import { isPhoneLayout, setupPhoneOrientation } from './mobile';
 import { AudioCue, unlockCueAudio } from './cue-audio';
 import { beginCharacterLoading, stopCharacterLoading } from './character-loading';
 import { coverScene, revealScene, transitionScene } from './transitions';
@@ -140,6 +142,7 @@ async function showAchievementsPage(): Promise<void> {
   const background = document.createElement('img'); background.src = '/assets/achievements/campus-background.webp'; background.alt = '';
   Object.assign(background.style, { position: 'absolute', inset: '-3%', width: '106%', height: '106%', objectFit: 'cover', animation: 'achievements-campus-drift 30s ease-in-out infinite alternate', willChange: 'transform', opacity: '0', transition: 'opacity .65s ease' });
   const panel = document.createElement('div');
+  panel.className = 'achievements-book';
   Object.assign(panel.style, { position: 'relative', width: 'min(96vw, 150vh)', maxHeight: '96vh', aspectRatio: '1536 / 1024', flex: '0 1 auto', transform: 'translateY(0) scale(1)', filter: 'drop-shadow(0 0 0 rgba(0,0,0,0))', transition: 'transform .28s ease, filter .28s ease, opacity .65s ease', opacity: '0', cursor: 'default' });
   panel.addEventListener('pointerenter', () => { panel.style.transform = 'translateY(-8px) scale(1.008)'; panel.style.filter = 'drop-shadow(0 18px 18px rgba(0,0,0,.42))'; });
   panel.addEventListener('pointerleave', () => { panel.style.transform = 'translateY(0) scale(1)'; panel.style.filter = 'drop-shadow(0 0 0 rgba(0,0,0,0))'; });
@@ -167,12 +170,15 @@ async function showAchievementsPage(): Promise<void> {
     { top: '67.3%', height: '9.5%', textLeft: '60.4%', textTop: '70.5%' },
     { top: '77.8%', height: '9.5%', textLeft: '60.4%', textTop: '81.0%' },
   ];
+  const achievementList = document.createElement('div');
+  achievementList.className = 'achievements-list'; achievementList.style.display = 'contents';
+  panel.appendChild(achievementList);
   ACHIEVEMENTS.forEach((achievement, index) => {
     const col = index < 6 ? 0 : 1, row = index % 6;
     const position = (col === 0 ? leftRows : rightRows)[row];
     const isUnlocked = unlocked.includes(achievement.id);
     const hidden = Boolean((achievement as { hidden?: boolean }).hidden) && !isUnlocked;
-    const item = document.createElement('div');
+    const item = document.createElement('div'); item.className = 'achievement-item';
     Object.assign(item.style, {
       position: 'absolute', left: col === 0 ? '8.2%' : '53.0%', top: position.top,
       width: '39.8%', height: position.height, boxSizing: 'border-box',
@@ -181,7 +187,7 @@ async function showAchievementsPage(): Promise<void> {
       textShadow: isUnlocked ? '0 1px 3px rgba(0,0,0,.7)' : 'none', pointerEvents: 'none',
     });
     // Keep the artwork square empty so custom icons can be inserted later.
-    const iconSlot = document.createElement('div');
+    const iconSlot = document.createElement('div'); iconSlot.className = 'achievement-item-icon';
     Object.assign(iconSlot.style, { position: 'absolute', left: col === 0 ? '30px' : '-10px', top: '14px', width: '18%', height: 'calc(100% - 12px)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' });
     // All twelve custom achievement icons use the same fitted slot in both columns.
     // object-fit: contain keeps the complete transparent PNG visible.
@@ -198,19 +204,20 @@ async function showAchievementsPage(): Promise<void> {
       Object.assign(iconImage.style, { display: 'block', width: '88%', height: '88%', objectFit: 'contain', objectPosition: 'center', flex: '0 0 auto', pointerEvents: 'none' });
       iconSlot.appendChild(iconImage);
     }
-    const copy = document.createElement('div');
+    const copy = document.createElement('div'); copy.className = 'achievement-item-copy';
     Object.assign(copy.style, {
       position: 'absolute', left: col === 0 ? '30.5%' : '18.5%', top: col === 0 ? '18%' : '12%', width: col === 0 ? '76%' : '79%',
       height: '76%', minWidth: '0', display: 'flex', flexDirection: 'column', justifyContent: 'center',
       gap: '2px', transform: 'rotate(-0.7deg)', transformOrigin: 'left center', overflow: 'hidden', zIndex: '3', color: 'inherit',
     });
     const title = document.createElement('div');
+    title.className = 'achievement-item-title';
     title.textContent = hidden ? '???' : achievement.title;
     Object.assign(title.style, {
       font: '700 clamp(8px, 1.0vw, 15px) Arial,sans-serif', lineHeight: '1.12', width: '100%', color: 'inherit',
       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', boxSizing: 'border-box',
     });
-    const description = document.createElement('div');
+    const description = document.createElement('div'); description.className = 'achievement-item-description';
     if (hidden) description.textContent = 'Скрытое достижение. Условия неизвестны.';
     else if (achievement.id === 'director') {
       description.append(document.createTextNode('Завершить прохождение за архетип, отличный'));
@@ -222,12 +229,13 @@ async function showAchievementsPage(): Promise<void> {
       maxHeight: '2.3em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: '2',
       WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere', boxSizing: 'border-box',
     });
-    copy.append(title, description); item.append(iconSlot, copy); panel.appendChild(item);
+    copy.append(title, description); item.append(iconSlot, copy); achievementList.appendChild(item);
   });
   const close = document.createElement('button'); close.type = 'button'; close.textContent = 'НАЗАД';
   Object.assign(close.style, { position: 'absolute', bottom: '1.2%', left: '50%', transform: 'translateX(-50%)', zIndex: '2', padding: '8px 22px', border: '1px solid #bdeaff', background: 'rgba(3,18,42,.92)', color: '#fff', font: '700 12px Arial,sans-serif', letterSpacing: '1px', cursor: 'pointer', boxShadow: '0 0 12px rgba(0,190,255,.3)' });
+  close.className = 'achievement-back';
   close.addEventListener('click', () => overlay.remove()); panel.appendChild(close);
-  const count = document.createElement('div'); count.textContent = `${unlocked.length} / ${ACHIEVEMENTS.length}`;
+  const count = document.createElement('div'); count.className = 'achievement-count'; count.textContent = `${unlocked.length} / ${ACHIEVEMENTS.length}`;
   Object.assign(count.style, { position: 'absolute', right: '3%', bottom: '1.8%', color: '#fff', font: '700 clamp(9px, .8vw, 13px) Arial,sans-serif', textShadow: '0 1px 4px #000' }); panel.appendChild(count);
   overlay.append(background, panel); document.body.appendChild(overlay);
   // Keep the results hidden briefly, then fade in the campus and achievement book together.
@@ -567,7 +575,13 @@ function fadeOutCorridorAudio(duration = 1400): Promise<void> {
     }, 30);
   });
 }
+let mobileClassroomStarted = false;
+let mobileClassroomWanted = false;
 function startClassroomMusic(): void {
+  if (isPhoneLayout()) {
+    if (mobileClassroomStarted && !classroomMusic.paused) return;
+    mobileClassroomStarted = true;
+  }
   prepareAudio(classroomMusic);
   if (classroomMusicFadeTimer !== undefined) window.clearInterval(classroomMusicFadeTimer);
   classroomMusic.pause(); classroomMusic.currentTime = 0; classroomMusic.volume = 0;
@@ -581,9 +595,10 @@ function startClassroomMusic(): void {
         window.clearInterval(classroomMusicFadeTimer); classroomMusicFadeTimer = undefined;
       }
     }, 35);
-  }).catch((error) => console.warn('Classroom music could not start:', error));
+  }).catch((error) => { mobileClassroomStarted = false; console.warn('Classroom music could not start:', error); });
 }
 function stopClassroomMusic(): void {
+  mobileClassroomStarted = false; mobileClassroomWanted = false;
   hideNowPlaying();
   if (classroomMusicFadeTimer !== undefined) window.clearInterval(classroomMusicFadeTimer);
   classroomMusicFadeTimer = undefined;
@@ -1510,6 +1525,8 @@ document.getElementById('corridor-exit')?.addEventListener('click', async (event
   corridorExitInProgress = true;
   exitButton.disabled = true;
   exitButton.setAttribute('aria-busy', 'true');
+  // iOS requires the first audible play() on this element within the trusted tap.
+  if (isPhoneLayout()) { mobileClassroomWanted = true; startClassroomMusic(); }
   await transitionScene(beginClassroomIntro, classroomAssets);
   exitButton.disabled = false;
   exitButton.removeAttribute('aria-busy');
@@ -2873,7 +2890,7 @@ function showFinalResultScreen(): void {
   background.src = '/assets/campus-background.webp';
   background.alt = '';
   Object.assign(background.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.08)', animation: 'final-campus-drift 28s ease-in-out infinite alternate', willChange: 'transform' });
-  const book = document.createElement('div');
+  const book = document.createElement('div'); book.className = 'final-result-book';
   Object.assign(book.style, { position: 'relative', width: 'min(96vw, 1600px)', aspectRatio: '1671 / 941', maxHeight: '94vh', flex: '0 1 auto', transform: 'translateY(0) scale(1)', filter: 'drop-shadow(0 0 0 rgba(0,0,0,0))', transition: 'transform .28s ease, filter .28s ease', cursor: 'default' });
   book.addEventListener('pointerenter', () => { book.style.transform = 'translateY(-10px) scale(1.008)'; book.style.filter = 'drop-shadow(0 18px 18px rgba(0,0,0,.38))'; });
   book.addEventListener('pointerleave', () => { book.style.transform = 'translateY(0) scale(1)'; book.style.filter = 'drop-shadow(0 0 0 rgba(0,0,0,0))'; });
@@ -2888,20 +2905,21 @@ function showFinalResultScreen(): void {
   const result = examCorrectCount <= 3 ? 'НЕ СДАН' : examCorrectCount >= 6 ? 'ОТЛИЧНО' : 'ЗАЧЁТ';
   const date = new Date();
   const dateText = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
-  const fields: Array<{text:string; left:number; top:number; width:number; height:number; size:number; align?:string; bold?:boolean}> = [
-    { text: String(player.surname || '—'), left: 32.8, top: 33.5, width: 18.5, height: 5.5, size: 1.35 },
-    { text: String(player.givenName || '—'), left: 32.8, top: 44.1, width: 18.5, height: 5.5, size: 1.35 },
-    { text: String(player.group || '—'), left: 32.8, top: 54.7, width: 18.5, height: 5.5, size: 1.35 },
-    { text: 'История КИУ', left: 64.1, top: 26.8, width: 24.8, height: 5.5, size: 1.25 },
-    { text: result, left: 65.2, top: 35.0, width: 23.0, height: 9.0, size: 2.1, align: 'center', bold: true },
-    { text: String(examCorrectCount), left: 67.2, top: 49.5, width: 3.0, height: 5.0, size: 1.45, align: 'center', bold: true },
-    { text: '7', left: 70.6, top: 49.5, width: 3.0, height: 5.0, size: 1.45, align: 'center', bold: true },
-    { text: archetype, left: 71.1, top: 59.4, width: 16.0, height: 5.0, size: 1.2 },
-    { text: formatRunDuration(endingRunDurationMs), left: 66.6, top: 69.6, width: 12.0, height: 5.0, size: 1.35, align: 'center', bold: true },
-    { text: dateText, left: 58.1, top: 79.7, width: 26.8, height: 5.0, size: 1.35, align: 'center' }
+  const fields: Array<{key:string; text:string; left:number; top:number; width:number; height:number; size:number; align?:string; bold?:boolean}> = [
+    { key: 'surname', text: String(player.surname || '—'), left: 32.8, top: 33.5, width: 18.5, height: 5.5, size: 1.35 },
+    { key: 'given-name', text: String(player.givenName || '—'), left: 32.8, top: 44.1, width: 18.5, height: 5.5, size: 1.35 },
+    { key: 'group', text: String(player.group || '—'), left: 32.8, top: 54.7, width: 18.5, height: 5.5, size: 1.35 },
+    { key: 'discipline', text: 'История КИУ', left: 64.1, top: 26.8, width: 24.8, height: 5.5, size: 1.25 },
+    { key: 'result', text: result, left: 65.2, top: 35.0, width: 23.0, height: 9.0, size: 2.1, align: 'center', bold: true },
+    { key: 'correct', text: String(examCorrectCount), left: 67.2, top: 49.5, width: 3.0, height: 5.0, size: 1.45, align: 'center', bold: true },
+    { key: 'total', text: '7', left: 70.6, top: 49.5, width: 3.0, height: 5.0, size: 1.45, align: 'center', bold: true },
+    { key: 'archetype', text: archetype, left: 71.1, top: 59.4, width: 16.0, height: 5.0, size: 1.2 },
+    { key: 'duration', text: formatRunDuration(endingRunDurationMs), left: 66.6, top: 69.6, width: 12.0, height: 5.0, size: 1.35, align: 'center', bold: true },
+    { key: 'date', text: dateText, left: 58.1, top: 79.7, width: 26.8, height: 5.0, size: 1.35, align: 'center' }
   ];
   for (const field of fields) {
     const node = document.createElement('div');
+    node.className = 'final-result-field'; node.dataset.field = field.key;
     node.textContent = field.text;
     Object.assign(node.style, {
       position: 'absolute', left: `${field.left}%`, top: `${field.top}%`, width: `${field.width}%`, height: `${field.height}%`,
@@ -2916,6 +2934,7 @@ function showFinalResultScreen(): void {
   }
   // Character mini-portrait inside the photo frame on the left page.
   const portrait = document.createElement('img');
+  portrait.className = 'final-result-portrait';
   portrait.alt = 'Портрет игрока';
   portrait.src = selection.gender === 'female'
     ? `/assets/characters/student_girl${selection.femalePreset + 1}/card.webp`
@@ -3327,3 +3346,8 @@ window.addEventListener('game:exam-scene-finished', (event: Event) => {
 });
 
 renderSelection();
+
+setupPhoneOrientation();
+document.addEventListener('click', () => {
+  if (isPhoneLayout() && mobileClassroomWanted && !cameoActive && classroomMusic.paused) startClassroomMusic();
+}, { capture: true });
