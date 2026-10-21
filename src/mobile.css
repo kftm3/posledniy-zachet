@@ -75,14 +75,14 @@ html:where(.phone-layout),:where(html.phone-layout) body,:where(html.phone-layou
 :where(html.phone-layout) #skills-screen .skills-back { left:var(--phone-left); }
 :where(html.phone-layout) #skills-screen .skills-continue { right:var(--phone-right); }
 :where(html.phone-layout) #skills-screen .skills-warning { bottom:10px; font-size:10px; left:25%; right:25%; }
-:where(html.phone-layout) #ticket-screen .ticket-heading { top:6px; left:var(--phone-left); width:auto; }
-:where(html.phone-layout) #ticket-screen .ticket-heading h1 { flex-direction:row; gap:.4em; font-size:16px; transform:none; }
+:where(html.phone-layout) #ticket-screen .ticket-heading { top:6px; left:var(--phone-left); right:var(--phone-right); width:auto; }
+:where(html.phone-layout) #ticket-screen .ticket-heading h1 { flex-direction:row; gap:.4em; width:max-content; max-width:100%; padding:.25em .65em; font-size:16px; transform:none; clip-path:none; border-radius:3px; }
 :where(html.phone-layout) #ticket-screen .ticket-heading p { display:none; }
 :where(html.phone-layout) #ticket-screen .ticket-viewport { position:absolute; inset:38px var(--phone-right) calc(48px + var(--phone-bottom)) var(--phone-left); overflow:auto; overscroll-behavior:contain; touch-action:pan-x pan-y pinch-zoom; -webkit-overflow-scrolling:touch; padding:4px; }
 :where(html.phone-layout) #ticket-screen .ticket-wrap,:where(html.phone-layout) #ticket-screen .ticket-wrap:hover,:where(html.phone-layout) #ticket-screen .ticket-wrap:focus-within { position:relative !important; left:auto !important; top:auto !important; width:100% !important; height:auto; max-height:none; transform:none !important; transition:none !important; will-change:auto; container-type:inline-size; margin:0 auto; }
 :where(html.phone-layout) #ticket-screen .ticket-field-value { font-size:clamp(12px,1.8cqw,18px) !important; }
 :where(html.phone-layout) #ticket-screen .ticket-archetype-name { font-size:clamp(12px,1.9cqw,18px) !important; }
-:where(html.phone-layout) #ticket-screen .ticket-archetype-description { top:43%; height:31%; padding:3px; font-size:clamp(12px,1.75cqw,17px) !important; line-height:1.25; display:block; overflow:auto; }
+:where(html.phone-layout) #ticket-screen .ticket-archetype-description { left:57.5%; top:48%; width:25%; height:23.5%; padding:1% 1.2%; font-size:clamp(12px,1.75cqw,17px) !important; line-height:1.25; display:block; overflow:auto; }
 :where(html.phone-layout) #ticket-screen .ticket-back,:where(html.phone-layout) #ticket-screen .ticket-start { bottom:var(--phone-bottom); min-height:38px; padding:6px 18px; font-size:13px; }
 :where(html.phone-layout) #ticket-screen .ticket-back { left:var(--phone-left); }
 :where(html.phone-layout) #ticket-screen .ticket-start { right:var(--phone-right); }

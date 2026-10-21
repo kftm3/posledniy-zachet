@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectCharacter, monitor } from './helpers';
+import { continueAfterCredits, selectCharacter, monitor } from './helpers';
 
 test('a new player sees no achievements menu button or speculative achievement downloads', async ({ page }) => {
   const requests: string[] = [];
@@ -30,6 +30,7 @@ for (const phone of [false, true]) {
         await page.locator('#excellent-ending-next').click();
       }
       await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
+    await continueAfterCredits(page);
       await page.getByRole('button', { name: 'ДОСТИЖЕНИЯ', exact: true }).click();
       const panel = page.locator('.achievements-book');
       await expect(panel).toHaveCSS('opacity', '1');

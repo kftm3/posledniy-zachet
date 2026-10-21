@@ -42,8 +42,8 @@
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-dialogue-layout { height:clamp(320px,48vh,860px) !important; min-height:0 !important; --exam-choice-height:clamp(42px,5.1vmin,110px); }
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-dialogue-left {
     grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
-    grid-template-rows:auto minmax(48px,1fr) auto auto auto !important;
-    grid-template-areas:'speaker speaker' 'question question' 'actions answers' 'status status' 'controls controls'; gap:.7vh 2vw !important;
+    grid-template-rows:auto minmax(48px,1fr) auto auto clamp(12px,2vh,44px) auto !important;
+    grid-template-areas:'speaker speaker' 'question question' 'actions answers' 'status status' '. .' 'controls controls'; gap:.7vh 2vw !important;
   }
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open #exam-dialogue-text { grid-area:question !important; font-size:clamp(20px,2.1vmin,48px) !important; font-weight:600; padding-left:clamp(10px,1.2vw,32px) !important; }
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-answer-list,:where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-paper-actions {

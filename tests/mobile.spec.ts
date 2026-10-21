@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { selectCharacter, monitor } from './helpers';
+import { continueAfterCredits, selectCharacter, monitor } from './helpers';
 
 test.use({
   viewport: { width: 874, height: 353 },
@@ -126,6 +126,13 @@ for (const viewport of [{ width: 874, height: 353 }, { width: 812, height: 320 }
     await settle(page);
     expect(await page.locator('.ticket-heading').evaluate(el => getComputedStyle(el,'::after').content)).not.toMatch(/[↕⬆⬇]/u);
     expect(await page.locator('.ticket-heading').evaluate(el => getComputedStyle(el,'::after').backgroundImage)).toContain('data:image/svg+xml');
+    const heading = page.locator('.ticket-heading h1');
+    await contained(heading);
+    expect(await heading.evaluate(el => {
+      const bounds=el.getBoundingClientRect(), range=document.createRange();
+      range.selectNodeContents(el); const text=range.getBoundingClientRect();
+      return text.left>=bounds.left && text.right<=bounds.right && text.top>=bounds.top && text.bottom<=bounds.bottom;
+    })).toBe(true);
     await contained(page.locator('.ticket-viewport'));
     expect((await page.locator('.ticket-wrap').boundingBox())!.width).toBeGreaterThan(viewport.width * .77);
     expect(await page.locator('.ticket-wrap').evaluate(el => getComputedStyle(el).transform)).toBe('none');
@@ -286,6 +293,7 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await expect.poll(() => page.locator('#excellent-ending-scene').evaluate(el => el.getBoundingClientRect().height)).toBe(page.viewportSize()!.height);
   for (let n = 0; n < 25 && !await page.locator('#ending-credits-video').count(); n++) await page.locator('#excellent-ending-next').tap();
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
+    await continueAfterCredits(page);
   await expect(page.locator('#final-result-screen')).toBeVisible();
   expect(await page.locator('#final-result-screen').evaluate(el => getComputedStyle(el,'::before').content)).not.toMatch(/[↕⬆⬇]/);
   expect(await page.locator('#final-result-screen').evaluate(el => getComputedStyle(el,'::before').backgroundImage)).toContain('data:image/svg+xml');

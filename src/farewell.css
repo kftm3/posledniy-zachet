@@ -1,0 +1,31 @@
+@font-face {
+  font-family:'Farewell Hand';
+  src:url('/fonts/CampusFarewell-Regular.woff2') format('woff2');
+  font-display:swap;
+}
+
+.farewell-scene {
+  position:fixed; inset:0; z-index:2147483000; box-sizing:border-box;
+  display:grid; grid-template-rows:minmax(0,1fr) auto; justify-items:center;
+  gap:8px; padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));
+  background:#000; color:#f4eadc; touch-action:manipulation;
+}
+.farewell-writing { width:100%; height:100%; min-height:0; max-width:1300px; overflow:visible; font-family:'Farewell Hand',cursive; font-size:54px; }
+.farewell-writing text { fill:currentColor; }
+.farewell-writing .farewell-greeting { color:#f6c4d6; font-size:66px; }
+.farewell-writing .farewell-signature { color:#d6dcec; font-size:46px; }
+.farewell-pen { fill:#f6e3c8; filter:drop-shadow(0 0 3px #e8d3ab); }
+.farewell-heart { fill:none; stroke:#f6a8c0; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.farewell-continue {
+  border:1px solid #a39887; border-radius:999px; padding:9px 38px; min-height:44px;
+  color:#f4eadc; background:#11100f; font:400 clamp(22px,2.1vw,32px)/1.2 'Farewell Hand',cursive;
+  opacity:0; visibility:hidden; transform:translateY(8px); cursor:pointer;
+  transition:opacity .5s ease,transform .5s ease,background .2s ease;
+}
+.farewell-scene.is-written .farewell-continue { opacity:1; visibility:visible; transform:none; }
+.farewell-continue:hover { background:#29231c; }
+.farewell-continue:focus-visible { outline:2px solid #f6c4d6; outline-offset:5px; }
+.farewell-continue:disabled { cursor:wait; }
+@media (prefers-reduced-motion:reduce) { .farewell-continue { transition:none; } }
+:where(html.phone-layout) .farewell-scene { padding:max(8px,env(safe-area-inset-top)) var(--phone-right) max(8px,var(--phone-bottom)) var(--phone-left); gap:2px; }
+:where(html.phone-layout) .farewell-continue { min-height:36px; padding:5px 30px; font-size:23px; }

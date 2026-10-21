@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectCharacter, openTicket, monitor, recordCueStarts } from './helpers';
+import { continueAfterCredits, selectCharacter, openTicket, monitor, recordCueStarts } from './helpers';
 
 test('title loads under 4 MiB and does not download hidden scenes/media', async ({ page }) => {
   const errors = monitor(page);
@@ -117,6 +117,7 @@ test(`play through corridor, classroom, exam and ${profile} ending without broke
   expect(cues.some((cue: any) => cue.speaker === 'МАМА · ТЕЛЕФОН')).toBe(false);
   // Exercise the actual media completion handler without waiting for the whole film.
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
+    await continueAfterCredits(page);
   await expect(page.locator('#final-result-screen')).toBeVisible();
   await page.getByRole('button', { name: 'В ГЛАВНОЕ МЕНЮ', exact: true }).click();
   await expect(page.locator('#start-screen')).toBeVisible();

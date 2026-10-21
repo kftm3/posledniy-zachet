@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectCharacter, openTicket, monitor } from './helpers';
+import { continueAfterCredits, selectCharacter, openTicket, monitor } from './helpers';
 
 test('selected character stays visible until a delayed replacement is decoded', async ({ page }) => {
   const errors = monitor(page);
@@ -190,6 +190,7 @@ test('results and achievements are prepared before opening and wait for slow art
   expect(loads).toHaveLength(1);
   expect(loads[0].attached).toBe(false);
   await page.locator('#ending-credits-video').evaluate(v => v.dispatchEvent(new Event('ended')));
+  await continueAfterCredits(page);
   await expect(page.locator('#final-result-screen')).toBeVisible();
   await expect.poll(() => page.locator('#final-result-screen img').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
   await page.getByRole('button', { name: 'ДОСТИЖЕНИЯ', exact: true }).click();

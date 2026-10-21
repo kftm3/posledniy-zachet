@@ -9,6 +9,7 @@ import { coverScene, revealScene, transitionScene } from './transitions';
 import { createAudio } from './media';
 import { loadImage, warmImages, readyImages, prepareAudio, prepareMedia, swapImage } from './asset-loading';
 import { gameStorage } from './storage';
+import { prepareFarewell, showFarewell } from './farewell';
 
 type Gender = 'male' | 'female';
 type SelectionState = { gender: Gender; malePreset: number; femalePreset: number };
@@ -609,13 +610,30 @@ function prepareTicketPortrait(): void {
   if (!photo) return;
   const key = selectedCharacterKey();
   if (photo.dataset.character === key && !(photo.complete && !photo.naturalWidth)) return;
+  configurePlayerThumbnail(photo);
+}
+
+function configurePlayerThumbnail(photo: HTMLImageElement): void {
   const base = selectedSpritePath().replace('/normal.webp', '/card');
-  photo.dataset.character = key;
+  photo.dataset.character = selectedCharacterKey();
   photo.loading = 'eager'; photo.fetchPriority = 'high';
-  photo.sizes = '(pointer: coarse) and (max-width: 1100px) 9vw, 13vw';
+  photo.sizes = '13vw';
   photo.srcset = `${base}-256.webp 256w, ${base}-512.webp 512w`;
   photo.onerror = () => { photo.onerror = null; photo.removeAttribute('srcset'); photo.src = `${base}-256.webp`; };
   photo.src = `${base}-256.webp`;
+}
+
+let preparedResultPortrait: { key: string; image: HTMLImageElement; ready: Promise<unknown> } | null = null;
+function prepareResultPortrait() {
+  const key = selectedCharacterKey();
+  if (!preparedResultPortrait || preparedResultPortrait.key !== key) {
+    const image = new Image();
+    image.className = 'final-result-portrait'; image.alt = 'Портрет игрока';
+    configurePlayerThumbnail(image);
+    const decoded = image.decode().catch(() => image.decode().catch(() => {}));
+    preparedResultPortrait = { key, image, ready: decoded };
+  }
+  return preparedResultPortrait;
 }
 
 function renderTicket(): void {
@@ -2119,6 +2137,7 @@ function examShowRoom(speaker:string,text:string,_emotion='normal',heroEmotion?:
 function beginExam(): void {
  if(examStarted) return;
  warmImages(resultAssets);
+ void prepareResultPortrait().ready;
  prepareCameo(false);
  void excellentEndingPhoneSound.prepare();
  examStarted=true; examQuestionIndex=0; examCorrectCount=0; examHintsUsed=0; examCheatAttempts=0; examQuestionCheatStart=0; examQuestionRude=false; examAnswerOrders=[]; examPhase='question'; examFeedbackIndex=0; cameoAfterQuestion=2+Math.floor(Math.random()*5); cameoBeatIndex=0; cameoActive=false; cameoPlayed=false;
@@ -2858,10 +2877,13 @@ async function finishEndingCredits(watchedToEnd = false): Promise<void> {
   if (watchedToEnd) unlockAchievement('credits-respect');
   const creditsVideo = endingCreditsOverlay.querySelector('video');
   if (creditsVideo) { creditsVideo.pause(); creditsVideo.autoplay = false; creditsVideo.removeAttribute('src'); creditsVideo.load(); }
-  await readyImages(resultAssets);
   endingCreditsOverlay.remove();
   endingCreditsOverlay = null;
-  showFinalResultScreen();
+  showFarewell(async () => {
+    await Promise.all([readyImages(resultAssets), prepareResultPortrait().ready]);
+    showFinalResultScreen();
+    document.getElementById('final-result-actions')?.querySelector<HTMLButtonElement>('button')?.focus({preventScroll:true});
+  });
   creditsFinishing = false;
 }
 
@@ -2965,21 +2987,13 @@ function showFinalResultScreen(): void {
     book.appendChild(node);
   }
   // Character mini-portrait inside the photo frame on the left page.
-  const portrait = document.createElement('img');
-  portrait.className = 'final-result-portrait';
-  portrait.alt = 'Портрет игрока';
-  portrait.src = selection.gender === 'female'
-    ? `/assets/characters/student_girl${selection.femalePreset + 1}/card.webp`
-    : selection.malePreset === SECRET_MALE_PRESET
-      ? '/assets/characters/student_male6/card.webp'
-      : selection.malePreset === DEVIL_MALE_PRESET
-        ? '/assets/characters/student_male7/card.webp'
-        : `/assets/characters/student_boy${selection.malePreset + 1}/card.webp`;
+  // Move the already decoded thumbnail into the book without restarting its request.
+  const portrait = prepareResultPortrait().image;
+  preparedResultPortrait = null;
   Object.assign(portrait.style, {
     position: 'absolute', left: '15.5%', top: '27.2%', width: '13.8%', height: '39.8%',
     objectFit: 'contain', objectPosition: 'center', zIndex: '2'
   });
-  portrait.onerror = () => { portrait.onerror = null; portrait.style.display = 'none'; };
   book.appendChild(portrait);
   // Container query units keep typography proportional to the book texture on different screens.
   book.style.containerType = 'inline-size';
@@ -3198,6 +3212,7 @@ function showFinalResultScreen(): void {
 }
 let preparedCreditsVideo: HTMLVideoElement | null = null;
 function prepareCreditsVideo(): HTMLVideoElement {
+  prepareFarewell();
   if (!preparedCreditsVideo) {
     preparedCreditsVideo = document.createElement('video');
     preparedCreditsVideo.id = 'ending-credits-video';
@@ -3225,6 +3240,7 @@ function startEndingCredits(): void {
     display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
   });
   void Promise.all(resultAssets.map(source => loadImage(source))).then(() => prepareResultAudio());
+  void prepareResultPortrait().ready;
   const video = prepareCreditsVideo();
   preparedCreditsVideo = null;
   warmImages([...resultAssets, ...achievementAssets]);
@@ -3327,6 +3343,7 @@ async function advanceExcellentEnding(): Promise<void> {
 }
 function startExcellentEnding(correctAnswers: number, endingType: 'brave' | 'trickster' | 'charisma' | 'analyst' | 'observer' | 'universal' | 'excellent' = 'excellent'): void {
   warmImages([...resultAssets, ...achievementAssets]);
+  void prepareResultPortrait().ready;
   endingRunDurationMs = corridorRunStartedAt > 0 ? Math.max(0, Date.now() - corridorRunStartedAt) : 0;
   const overlay = document.getElementById('excellent-ending');
   if (!overlay) return;

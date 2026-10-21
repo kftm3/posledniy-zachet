@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { selectCharacter, openTicket, monitor } from './helpers';
+import { continueAfterCredits, selectCharacter, openTicket, monitor } from './helpers';
 
 async function inside(child: Locator, parent: Locator) {
   await expect(child).toBeVisible();
@@ -68,6 +68,7 @@ for (const viewport of [{width:1280,height:720}, {width:1920,height:1080}, {widt
     expect(ef.y + ef.height - en.y - en.height).toBeCloseTo(f.y + f.height - b.y - b.height, 0);
     for (let n = 0; n < 25 && !await page.locator('#ending-credits-video').count(); n++) await page.locator('#excellent-ending-next').click();
     await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
+    await continueAfterCredits(page);
     const book = page.locator('.final-result-book');
     await expect(book).toBeVisible();
     const bookBox = (await book.boundingBox())!;

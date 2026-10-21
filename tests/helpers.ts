@@ -57,3 +57,9 @@ export async function recordCueStarts(page: Page) {
     };
   });
 }
+
+export async function continueAfterCredits(page: Page) {
+  await expect(page.locator('#farewell-scene')).toHaveClass(/is-written/);
+  await page.locator('#farewell-scene').getByRole('button', { name: 'Продолжить', exact: true }).click();
+  await expect(page.locator('#farewell-scene')).toHaveCount(0);
+}
