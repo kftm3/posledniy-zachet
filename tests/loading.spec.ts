@@ -198,6 +198,7 @@ test('results and achievements are prepared before opening and wait for slow art
   releaseAchievements();
   await expect(page.locator('#achievements-page-overlay')).toBeVisible();
   const slowArtwork = page.locator('#achievements-page-overlay img[src$="achievement-01.webp"]');
+  await expect(slowArtwork.locator('..')).toHaveText('');
   expect(await slowArtwork.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(false);
   releaseIcon();
   await expect.poll(() => page.locator('#achievements-page-overlay img').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);

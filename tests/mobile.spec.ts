@@ -11,14 +11,13 @@ test.use({
 
 async function contained(locator: Locator, parent?: Locator) {
   await expect(locator).toBeVisible();
-  const box = await locator.boundingBox();
-  expect(box, `${locator} has a box`).not.toBeNull();
-  const bounds = parent ? await parent.boundingBox() : { x: 0, y: 0, ...locator.page().viewportSize()! };
-  expect(bounds).not.toBeNull();
-  expect(box!.x).toBeGreaterThanOrEqual(bounds!.x - 1);
-  expect(box!.y).toBeGreaterThanOrEqual(bounds!.y - 1);
-  expect(box!.x + box!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width + 1);
-  expect(box!.y + box!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height + 1);
+  const parentElement = parent ? await parent.elementHandle() : null;
+  await expect.poll(() => locator.evaluate((el, parentEl) => {
+    const box = el.getBoundingClientRect();
+    const bounds = parentEl ? parentEl.getBoundingClientRect() : { x: 0, y: 0, width: innerWidth, height: innerHeight };
+    return box.x >= bounds.x - 1 && box.y >= bounds.y - 1
+      && box.right <= bounds.x + bounds.width + 1 && box.bottom <= bounds.y + bounds.height + 1;
+  }, parentElement)).toBe(true);
 }
 
 async function settle(page: Page) {
@@ -136,6 +135,13 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
   await expect(page.locator('#corridor-screen')).toBeVisible();
   const corridorFrame = page.locator('#corridor-screen .corridor-dialogue-layout');
   const commonHeight = (await corridorFrame.boundingBox())!.height;
+  const corridorBox = (await corridorFrame.boundingBox())!;
+  expect(corridorBox.y).toBeGreaterThan(page.viewportSize()!.height * .71);
+  expect(corridorBox.width).toBeLessThan(page.viewportSize()!.width * .94);
+  const speakerTag = page.locator('#corridor-player-name');
+  await speakerTag.evaluate(el => { el.textContent = 'КОНСТАНТИН КОНСТАНТИНОПОЛЬСКИЙ'; });
+  await contained(speakerTag, corridorFrame);
+  expect(await speakerTag.evaluate(el => el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth)).toBe(true);
   for (let n = 0; n < 5; n++) await page.locator('#corridor-next').tap();
   for (const button of await page.locator('#corridor-choices button').all()) await contained(button, corridorFrame);
   await page.locator('#corridor-choices button').first().tap();
@@ -165,10 +171,12 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
   await expect(page.locator('#teacher-intro-screen')).toBeVisible();
   await settle(page);
   const teacherFrame = page.locator('#teacher-intro-screen .corridor-dialogue-layout');
-  expect((await teacherFrame.boundingBox())!.height).toBeCloseTo(commonHeight, 0);
+  expect((await teacherFrame.boundingBox())!.height).toBeLessThanOrEqual(112);
   expect((await page.locator('#teacher-scene-sprite').boundingBox())!.height).toBeGreaterThan(300);
   for (const button of await page.locator('#teacher-choices button').all()) await contained(button, teacherFrame);
   await page.locator('#teacher-choices button').first().tap();
+  await expect(page.locator('#teacher-choices')).toBeHidden();
+  await expect.poll(async () => (await teacherFrame.boundingBox())!.height).toBeCloseTo(commonHeight, 0);
   for (let n = 0; n < 10 && !await page.locator('#exam-screen').isVisible(); n++) {
     await page.locator('#teacher-next').tap();
     await page.waitForTimeout(80);
@@ -209,7 +217,7 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await expect(page.locator('#cameo-overlay')).toBeVisible();
   await contained(page.locator('#cameo-dialogue-panel'));
   await contained(page.locator('#cameo-next'), page.locator('#cameo-dialogue-panel'));
-  expect(await page.locator('#cameo-scene-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
+  expect(await page.locator('#cameo-scene-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
   expect((await page.locator('.cameo-scene-frame').boundingBox())!.y).toBe(0);
   for (let n = 0; n < 3; n++) await page.locator('#cameo-next').tap();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:exam-scene-finished', {
@@ -220,10 +228,14 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   const toastBox = (await toast.boundingBox())!;
   expect(toastBox.height).toBeLessThanOrEqual(50);
   expect(toastBox.width).toBeLessThanOrEqual(224);
-  expect(toastBox.y).toBeGreaterThan(page.viewportSize()!.height - 70);
   await expect(page.locator('#excellent-ending')).not.toHaveClass(/is-blackout/);
-  await contained(page.locator('#excellent-ending-next'));
-  expect(await page.locator('#excellent-ending-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
+  const endingFrame = (await page.locator('#excellent-ending .corridor-dialogue-layout').boundingBox())!;
+  expect(toastBox.y + toastBox.height).toBeLessThan(endingFrame.y);
+  await expect(page.locator('#excellent-ending')).not.toHaveClass(/is-blackout/);
+  const endingPanel = page.locator('#excellent-ending .corridor-dialogue-layout');
+  await contained(page.locator('#excellent-ending-next'), endingPanel);
+  await contained(page.locator('#excellent-ending-text'), endingPanel);
+  expect(await page.locator('#excellent-ending-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
   for (let n = 0; n < 25 && !await page.locator('#ending-credits-video').count(); n++) await page.locator('#excellent-ending-next').tap();
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
   await expect(page.locator('#final-result-screen')).toBeVisible();
@@ -231,6 +243,11 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await contained(book);
   const box = (await book.boundingBox())!;
   expect(box.width / box.height).toBeCloseTo(1671 / 941, 2);
+  const archetypeField = page.locator('[data-field="archetype"]');
+  for (const name of ['РАЙАН ГОСЛИНГ', 'МЕГАН ФОКС', 'НАБЛЮДАТЕЛЬ', 'НАБЛЮДАТЕЛЬНИЦА', 'УНИВЕРСАЛ', 'ОТЛИЧНИЦА']) {
+    await archetypeField.evaluate((el, value) => { el.textContent = value; }, name);
+    expect(await archetypeField.evaluate(el => el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth)).toBe(true);
+  }
   const photo = (await page.locator('.final-result-portrait').boundingBox())!;
   const surname = (await page.locator('[data-field="surname"]').boundingBox())!;
   expect(photo.x + photo.width).toBeLessThan(surname.x);

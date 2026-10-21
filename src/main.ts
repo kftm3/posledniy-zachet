@@ -1,5 +1,6 @@
 import './style.css';
 import './achievements.css';
+import './scene-layout.css';
 import './mobile.css';
 import { isPhoneLayout, setupPhoneOrientation } from './mobile';
 import { AudioCue, unlockCueAudio } from './cue-audio';
@@ -17,18 +18,18 @@ const DEVIL_UNLOCK_KEY = 'last-exam-devil-unlocked';
 const ACHIEVEMENTS_STORAGE_KEY = 'last-exam-achievements-v1';
 const FIRST_COMPLETED_ARCHETYPE_KEY = 'last-exam-first-completed-archetype';
 const ACHIEVEMENTS = [
-  { id: 'history-keeper', title: 'Хранитель истории КИУ', description: 'Сдать зачёт на отлично (6–7 правильных ответов).', icon: '📚' },
-  { id: 'result-first', title: 'Главное — результат', description: 'Сдать зачёт (4–5 правильных ответов).', icon: '☑️' },
-  { id: 'retake-legend', title: 'Легенда пересдачи', description: 'Провалить зачёт (0–3 правильных ответа).', icon: '🧾' },
-  { id: 'too-clever', title: 'Слишком хитрый', description: 'Совершить 3 и более попыток списывания.', icon: '📝' },
-  { id: 'hello', title: 'Привет!', description: 'Поздороваться с Артуром.', icon: '🤝' },
-  { id: 'credits-respect', title: 'Уважаемый человек', description: 'Досмотреть титры до конца, не нажимая «Пропустить».', icon: '🎞️' },
-  { id: 'hesoyam', title: 'HESOYAM', description: 'Ввести секретный код в меню выбора персонажа.', icon: '🟩', hidden: true },
-  { id: 'the-end', title: 'Конец...?', description: 'Завершить прохождение и дойти до итогового экрана.', icon: '🎬' },
-  { id: 'director', title: 'Сам себе режиссёр', description: 'Завершить прохождение за архетип, отличный от архетипа первого прохождения.', icon: '🎭', hidden: true },
-  { id: 'teacher-patience', title: 'Терпение преподавателя', description: 'Довести усталость преподавательницы до критического уровня.', icon: '🔥', hidden: true },
-  { id: 'jack-of-all-trades', title: 'На все руки мастер', description: 'Завершить игру за архетип «Универсал».', icon: '🎓' },
-  { id: 'only-the-beginning', title: 'Это только начало', description: 'Начать повторное прохождение после первого завершения игры.', icon: '🔁' },
+  { id: 'history-keeper', title: 'Хранитель истории КИУ', description: 'Сдать зачёт на отлично (6–7 правильных ответов).' },
+  { id: 'result-first', title: 'Главное — результат', description: 'Сдать зачёт (4–5 правильных ответов).' },
+  { id: 'retake-legend', title: 'Легенда пересдачи', description: 'Провалить зачёт (0–3 правильных ответа).' },
+  { id: 'too-clever', title: 'Слишком хитрый', description: 'Совершить 3 и более попыток списывания.' },
+  { id: 'hello', title: 'Привет!', description: 'Поздороваться с Артуром.' },
+  { id: 'credits-respect', title: 'Уважаемый человек', description: 'Досмотреть титры до конца, не нажимая «Пропустить».' },
+  { id: 'hesoyam', title: 'HESOYAM', description: 'Ввести секретный код в меню выбора персонажа.', hidden: true },
+  { id: 'the-end', title: 'Конец...?', description: 'Завершить прохождение и дойти до итогового экрана.' },
+  { id: 'director', title: 'Сам себе режиссёр', description: 'Завершить прохождение за архетип, отличный от архетипа первого прохождения.', hidden: true },
+  { id: 'teacher-patience', title: 'Терпение преподавателя', description: 'Довести усталость преподавательницы до критического уровня.', hidden: true },
+  { id: 'jack-of-all-trades', title: 'На все руки мастер', description: 'Завершить игру за архетип «Универсал».' },
+  { id: 'only-the-beginning', title: 'Это только начало', description: 'Начать повторное прохождение после первого завершения игры.' },
 ] as const;
 type AchievementId = typeof ACHIEVEMENTS[number]['id'];
 function readUnlockedAchievements(): string[] {
@@ -97,7 +98,7 @@ function showNextAchievementNotification(): void {
   iconImage.src = `/assets/achievements/icons/achievement-${String(index).padStart(2, '0')}.webp`;
   iconImage.alt = '';
   Object.assign(iconImage.style, { width:'90%', height:'90%', objectFit:'contain', filter:`drop-shadow(0 0 7px ${accent}80)` });
-  iconImage.onerror = () => { iconImage.remove(); iconFrame.textContent = achievement.icon; iconFrame.style.fontSize = '36px'; };
+  iconImage.onerror = () => iconImage.remove();
   iconFrame.appendChild(iconImage);
   const content = document.createElement('div'); content.className = 'achievement-toast-copy';
   Object.assign(content.style, { minWidth:'0', display:'flex', flexDirection:'column', gap:'5px' });
@@ -162,11 +163,10 @@ async function showAchievementsPage(origin: 'results' | 'menu' = 'results'): Pro
     item.setAttribute('role', 'listitem');
     item.setAttribute('aria-label', `${hidden ? 'Скрытое достижение' : achievement.title}: ${isUnlocked ? 'получено' : 'закрыто'}`);
     const icon = document.createElement('div'); icon.className = 'achievement-item-icon';
-    icon.setAttribute('aria-hidden', 'true'); icon.textContent = achievement.icon;
+    icon.setAttribute('aria-hidden', 'true');
     const image = document.createElement('img');
     image.src = `/assets/achievements/icons/achievement-${String(index + 1).padStart(2, '0')}.webp`;
     image.alt = ''; image.decoding = 'async';
-    image.onload = () => { if (icon.firstChild?.nodeType === Node.TEXT_NODE) icon.firstChild.remove(); };
     image.onerror = () => image.remove();
     icon.appendChild(image);
     const copy = document.createElement('div'); copy.className = 'achievement-item-copy';
@@ -603,6 +603,21 @@ function renderSkills(): void {
 }
 
 
+/** Reuse selection thumbnails and start this hidden image before the identity form. */
+function prepareTicketPortrait(): void {
+  const photo = document.getElementById('ticket-photo') as HTMLImageElement | null;
+  if (!photo) return;
+  const key = selectedCharacterKey();
+  if (photo.dataset.character === key && !(photo.complete && !photo.naturalWidth)) return;
+  const base = selectedSpritePath().replace('/normal.webp', '/card');
+  photo.dataset.character = key;
+  photo.loading = 'eager'; photo.fetchPriority = 'high';
+  photo.sizes = '(pointer: coarse) and (max-width: 1100px) 9vw, 13vw';
+  photo.srcset = `${base}-256.webp 256w, ${base}-512.webp 512w`;
+  photo.onerror = () => { photo.onerror = null; photo.removeAttribute('srcset'); photo.src = `${base}-256.webp`; };
+  photo.src = `${base}-256.webp`;
+}
+
 function renderTicket(): void {
   try {
     const player = JSON.parse(gameStorage.getItem('last-exam-player-data') || '{}');
@@ -610,8 +625,7 @@ function renderTicket(): void {
     set('ticket-surname', player.surname || 'Фамилия'); set('ticket-name', player.givenName || 'Имя'); set('ticket-group', player.group || 'Группа');
     const archetype=getArchetype(); set('ticket-archetype-name', archetype.name); set('ticket-archetype-description', archetype.description);
     set('ticket-archetype-icon', '');
-    const photo=document.getElementById('ticket-photo') as HTMLImageElement | null;
-    if(photo){ photo.src = selection.gender==='female' ? `/assets/characters/student_girl${selection.femalePreset+1}/card.webp` : (selection.malePreset === SECRET_MALE_PRESET ? '/assets/characters/student_male6/card.webp' : selection.malePreset === DEVIL_MALE_PRESET ? '/assets/characters/student_male7/card.webp' : `/assets/characters/student_boy${selection.malePreset+1}/card.webp`); photo.onerror=()=>{photo.onerror=null;photo.src='/assets/character_selector_male.webp';}; }
+    prepareTicketPortrait();
   } catch { /* retain the ticket's safe placeholder labels */ }
 }
 
@@ -774,6 +788,7 @@ function saveSelection(): void {
 }
 function showScreen(screen: 'start' | 'character' | 'input' | 'skills' | 'ticket' | 'corridor' | 'classroom-intro' | 'classroom-gallery' | 'classroom-classmates' | 'teacher-intro' | 'exam'): void {
   if (screen === 'start') syncMenuAchievementsButton();
+  if (screen !== 'character') closeCheatPanel();
   if (screen !== 'character') stopCharacterLoading();
   const showStart = screen === 'start';
   const showCharacter = screen === 'character';
@@ -936,6 +951,7 @@ startButton?.addEventListener('click', async () => {
 continueButton?.addEventListener('click', async () => {
   if (isTransitioning) return;
   saveSelection();
+  prepareTicketPortrait();
   window.dispatchEvent(new CustomEvent('game:character-selected', { detail: { ...selection } }));
   isTransitioning = true;
   await transitionScene(() => { showScreen('input'); syncSecretIdentity(); }, ['/assets/input_screen_background.webp', '/assets/notebook_form_transparent.webp']);
@@ -972,13 +988,9 @@ playerForm?.addEventListener('submit', (event) => {
   if (!isTransitioning) { isTransitioning=true; void transitionScene(() => showScreen('skills')).finally(() => { isTransitioning=false; }); }
 });
 
-document.addEventListener('keydown', (event) => {
-  if (!characterScreen || characterScreen.classList.contains('is-hidden')) { cheatBuffer = ''; return; }
-  if (event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1 || !/[a-z]/i.test(event.key)) return;
-  cheatBuffer = (cheatBuffer + event.key.toLowerCase()).slice(-7);
-  const code = cheatBuffer.endsWith('hesoyam') ? 'hesoyam' : cheatBuffer.endsWith('devil') ? 'devil' : '';
-  if (!code) return;
-  cheatBuffer = '';
+type CheatCode = 'hesoyam' | 'devil';
+function activateCheat(code: CheatCode): void {
+  if (!characterScreen || characterScreen.classList.contains('is-hidden')) return;
   if (code === 'hesoyam') {
     if (secretPresetUnlocked) {
       secretPresetUnlocked = false;
@@ -1022,6 +1034,67 @@ document.addEventListener('keydown', (event) => {
     characterScreen?.classList.remove('devil-scene-shake');
   }, 620);
   renderSelection();
+}
+
+document.addEventListener('keydown', (event) => {
+  if (!characterScreen || characterScreen.classList.contains('is-hidden')) { cheatBuffer = ''; return; }
+  // Typing into the phone form must not activate once while typing and again on submit.
+  if (event.target instanceof Element && event.target.closest('input,textarea,[contenteditable="true"]')) return;
+  if (event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1 || !/[a-z]/i.test(event.key)) return;
+  cheatBuffer = (cheatBuffer + event.key.toLowerCase()).slice(-7);
+  const code = cheatBuffer.endsWith('hesoyam') ? 'hesoyam' : cheatBuffer.endsWith('devil') ? 'devil' : '';
+  if (!code) return;
+  cheatBuffer = ''; activateCheat(code);
+});
+
+function closeCheatPanel(restoreFocus = false): void {
+  const panel = document.getElementById('character-cheat-panel');
+  if (panel) panel.hidden = true;
+  const toggle = document.getElementById('character-cheat-toggle');
+  toggle?.setAttribute('aria-expanded', 'false');
+  if (restoreFocus) toggle?.focus({ preventScroll: true });
+}
+function fitCheatPanel(): void {
+  const panel = document.getElementById('character-cheat-panel');
+  if (!panel || panel.hidden || !isPhoneLayout()) return;
+  const viewport = window.visualViewport;
+  panel.style.height = `${viewport?.height ?? window.innerHeight}px`;
+  panel.style.top = `${viewport?.offsetTop ?? 0}px`;
+}
+window.visualViewport?.addEventListener('resize', fitCheatPanel);
+window.visualViewport?.addEventListener('scroll', fitCheatPanel);
+document.getElementById('character-cheat-toggle')?.addEventListener('click', () => {
+  const panel = document.getElementById('character-cheat-panel');
+  const input = document.getElementById('character-cheat-input') as HTMLInputElement | null;
+  if (!panel || !input) return;
+  cheatBuffer = ''; input.value = '';
+  document.getElementById('character-cheat-status')!.textContent = '';
+  panel.hidden = false;
+  fitCheatPanel();
+  document.getElementById('character-cheat-toggle')?.setAttribute('aria-expanded', 'true');
+  input.focus({ preventScroll: true });
+});
+document.getElementById('character-cheat-close')?.addEventListener('click', () => closeCheatPanel(true));
+document.getElementById('character-cheat-panel')?.addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeCheatPanel(true);
+});
+document.getElementById('character-cheat-panel')?.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { event.preventDefault(); closeCheatPanel(true); }
+});
+document.getElementById('character-cheat-form')?.addEventListener('submit', event => {
+  event.preventDefault();
+  const input = document.getElementById('character-cheat-input') as HTMLInputElement;
+  const code = input.value.trim().toLowerCase();
+  if (code !== 'hesoyam' && code !== 'devil') {
+    document.getElementById('character-cheat-status')!.textContent = 'Код не распознан. Попробуй ещё раз.';
+    return;
+  }
+  activateCheat(code);
+  closeCheatPanel(true);
+  if (code === 'hesoyam' ? secretPresetUnlocked : devilPresetUnlocked) {
+    setPreset('male', code === 'hesoyam' ? SECRET_MALE_PRESET : DEVIL_MALE_PRESET);
+  }
+  document.querySelector('.male-panel .portrait-slot.is-selected')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 });
 
 document.querySelectorAll<HTMLElement>('.selector-panel').forEach((panel) => {
@@ -2873,7 +2946,7 @@ function showFinalResultScreen(): void {
       position: 'absolute', left: `${field.left}%`, top: `${field.top}%`, width: `${field.width}%`, height: `${field.height}%`,
       display: 'flex', alignItems: 'center', justifyContent: field.align === 'center' ? 'center' : 'flex-start',
       overflow: 'hidden', color: '#142e68', fontFamily: 'Georgia, "Times New Roman", serif',
-      fontSize: `clamp(9px, ${field.size}cqw, 25px)`, fontWeight: field.bold ? '700' : '500',
+      fontSize: `max(7px, ${field.size}cqw)`, fontWeight: field.bold ? '700' : '500',
       lineHeight: '1.05', textAlign: field.align || 'left', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
       textShadow: '0 0 .5px rgba(255,255,255,.35)'
     });

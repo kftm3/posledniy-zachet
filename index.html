@@ -83,6 +83,16 @@
           <button class="skills-continue character-continue" id="continue-button" type="button" aria-label="Продолжить">
             ПРОДОЛЖИТЬ <span aria-hidden="true">→</span>
           </button>
+          <button class="character-cheat-toggle" id="character-cheat-toggle" type="button" aria-label="Ввести чит-код" aria-controls="character-cheat-panel" aria-expanded="false">?</button>
+          <div class="character-cheat-panel" id="character-cheat-panel" role="dialog" aria-modal="true" aria-labelledby="character-cheat-heading" hidden>
+            <form id="character-cheat-form" class="character-cheat-form">
+              <header><h2 id="character-cheat-heading">Чит-код</h2><button id="character-cheat-close" type="button" aria-label="Закрыть ввод чит-кода">×</button></header>
+              <label for="character-cheat-input">Введи найденный код</label>
+              <input id="character-cheat-input" name="code" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" maxlength="32" required />
+              <button type="submit" class="character-cheat-submit">ПРИМЕНИТЬ</button>
+              <p id="character-cheat-status" role="status" aria-live="polite"></p>
+            </form>
+          </div>
           <div class="selection-toast" id="selection-toast" role="status" aria-live="polite"></div>
         </section>
         <section class="game-stage input-screen is-hidden" id="input-screen" aria-label="Ввод данных игрока" aria-hidden="true">
@@ -132,7 +142,7 @@
           <header class="ticket-heading"><h1><span>ПОДТВЕРДИТЕ</span><span>ПЕРСОНАЖА</span></h1><p>Проверьте данные. После подтверждения<br>начнётся игра.</p></header>
           <div class="ticket-wrap">
             <img loading="lazy" decoding="async" class="ticket-art" src="/assets/student-ticket.webp" alt="Студенческий билет Казанского инновационного университета" draggable="false" />
-            <div class="ticket-photo"><img loading="lazy" decoding="async" id="ticket-photo" src="/assets/characters/student_girl1/card.webp" alt="Выбранный персонаж" /></div>
+            <div class="ticket-photo"><img decoding="async" id="ticket-photo" alt="Выбранный персонаж" /></div>
             <div class="ticket-field-value ticket-surname" id="ticket-surname">Фамилия</div><div class="ticket-field-value ticket-name" id="ticket-name">Имя</div><div class="ticket-field-value ticket-group" id="ticket-group">Группа</div>
             <div class="ticket-archetype-icon" id="ticket-archetype-icon" aria-hidden="true"></div><div class="ticket-archetype-name" id="ticket-archetype-name">УНИВЕРСАЛ</div><div class="ticket-archetype-description" id="ticket-archetype-description">Твой стиль определится по распределению навыков.</div>
           </div>
@@ -151,6 +161,7 @@
               <div class="corridor-dialogue-controls">
                 <span class="corridor-progress" id="corridor-progress">1 / 5</span>
                 <button class="corridor-next" id="corridor-next" type="button">ДАЛЬШЕ <span>→</span></button>
+                <button class="corridor-exit is-hidden" id="corridor-exit" type="button">К АУДИТОРИИ <span>→</span></button>
               </div>
             </div>
             <div class="corridor-choices is-hidden" id="corridor-choices" aria-label="Варианты ответа">
@@ -160,7 +171,6 @@
               <button type="button" data-choice="thinking">«Сначала оценю ситуацию»</button>
             </div>
           </div>
-          <button class="corridor-exit is-hidden" id="corridor-exit" type="button">К АУДИТОРИИ <span>→</span></button>
         </section>
         <section class="game-stage classroom-intro-screen is-hidden" id="classroom-intro-screen" aria-label="Вход в аудиторию" aria-hidden="true">
           <div class="classroom-intro-background" aria-hidden="true"></div>

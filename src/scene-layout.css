@@ -1,0 +1,72 @@
+/* Final layouts override the historical scene-specific positioning in style.css. */
+@media not all and (pointer: coarse) and (max-width: 1100px) {
+  :is(#app,#excellent-ending) .corridor-dialogue-layout {
+    left:3% !important; right:3% !important; bottom:2% !important; width:auto !important;
+    height:32vh !important; min-height:240px !important; max-height:none !important;
+    display:grid !important; grid-template-columns:minmax(0,1fr) !important; grid-template-rows:minmax(0,1fr) !important;
+    padding:2.5vh 3vw !important; gap:1.5vw !important; background-size:100% 128% !important;
+  }
+  :is(#app,#excellent-ending) .corridor-dialogue-left {
+    position:relative !important; display:grid !important; grid-column:1/-1 !important; grid-row:1 !important;
+    width:100% !important; height:100%; min-height:0; padding:0 !important;
+    grid-template-columns:minmax(0,1fr) !important; grid-template-rows:auto minmax(0,1fr) auto !important;
+    grid-template-areas:'speaker' 'text' 'controls'; gap:1vh !important;
+  }
+  :is(#app,#excellent-ending) .corridor-player-name {
+    grid-area:speaker !important; position:static !important; transform:none !important; margin:0 !important;
+    width:max-content !important; max-width:100% !important; min-width:0 !important; height:auto !important; min-height:0 !important;
+    padding:.3em 1.5em .3em .7em !important; font-size:clamp(16px,1.6vmin,40px) !important; line-height:1.2 !important;
+    white-space:normal !important; overflow-wrap:anywhere; clip-path:none; border-radius:3px;
+  }
+  :is(#app,#excellent-ending) .corridor-dialogue-text {
+    grid-area:text !important; position:static !important; transform:none !important; width:100% !important; max-width:100% !important;
+    min-width:0; min-height:0; margin:0 !important; padding:0 !important; align-self:stretch !important;
+    font-size:clamp(18px,1.9vmin,48px) !important; line-height:1.35 !important; white-space:normal; overflow-wrap:anywhere; overflow:auto;
+  }
+  :is(#app,#excellent-ending) .corridor-dialogue-controls {
+    grid-area:controls !important; position:static !important; transform:none !important;
+    display:flex !important; width:100%; margin:0 !important; align-items:center; justify-content:space-between; gap:1em;
+  }
+  :is(#app,#excellent-ending) .corridor-progress { font-size:clamp(12px,1.2vmin,30px); }
+  :is(#app,#excellent-ending) .corridor-next,:is(#app,#excellent-ending) .corridor-exit {
+    min-height:2.6em; font-size:clamp(15px,1.6vmin,40px); padding:.55em 1.4em; margin-left:auto;
+  }
+  #corridor-screen .corridor-dialogue-layout:has(#corridor-choices:not(.is-hidden)) { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) !important; }
+  #corridor-screen .corridor-dialogue-layout:has(#corridor-choices:not(.is-hidden)) .corridor-dialogue-left { grid-column:1 !important; }
+  #corridor-choices { grid-column:2; grid-row:1; padding:0 !important; gap:1vh !important; }
+  #corridor-choices p { transform:none !important; font-size:clamp(14px,1.4vmin,34px); }
+  #corridor-choices button,#teacher-choices button { font-size:clamp(15px,1.6vmin,40px) !important; min-height:2.6em !important; max-height:none !important; padding:.5em .8em !important; line-height:1.2 !important; }
+  #teacher-intro-screen .teacher-dialogue-left:has(#teacher-choices:not(.is-hidden)) { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) !important; grid-template-areas:'speaker choices' 'text choices' 'controls controls'; }
+  #teacher-choices { grid-area:choices !important; padding:0 !important; margin:0 !important; }
+
+  #final-result-screen .final-result-portrait { object-fit:cover !important; object-position:center 20%; }
+
+  /* A real grid reserves separate space for long questions, answers and actions. */
+  #exam-screen.exam-paper-open .exam-dialogue-layout { height:60vh !important; min-height:350px !important; }
+  #exam-screen.exam-paper-open .exam-dialogue-left {
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    grid-template-rows:auto minmax(0,1fr) auto auto auto !important;
+    grid-template-areas:'speaker speaker' 'question answers' 'actions answers' 'status status' 'controls controls'; gap:1vh 2vw !important;
+  }
+  #exam-screen.exam-paper-open #exam-dialogue-text { grid-area:question !important; }
+  #exam-screen.exam-paper-open .exam-answer-list { grid-area:answers !important; position:static !important; inset:auto !important; width:100% !important; min-height:0; grid-template-rows:repeat(3,minmax(0,1fr)); gap:1vh !important; }
+  #exam-screen .exam-answer-button { font-size:clamp(17px,1.8vmin,46px) !important; min-height:0 !important; padding:.6em .8em !important; line-height:1.25 !important; white-space:normal; overflow-wrap:anywhere; }
+  #exam-screen.exam-paper-open .exam-paper-actions { grid-area:actions !important; position:static !important; inset:auto !important; transform:none !important; width:100% !important; display:flex !important; gap:.5vw !important; }
+  #exam-screen .exam-paper-actions button { flex:1; width:auto !important; min-width:0; min-height:2.8em !important; padding:.4em .5em !important; font-size:clamp(12px,1.3vmin,32px) !important; line-height:1.2 !important; }
+  #exam-screen.exam-paper-open .exam-action-status { grid-area:status !important; position:static !important; width:100%; max-width:100% !important; min-height:0; font-size:clamp(12px,1.3vmin,32px); margin:0; }
+}
+
+:is(#app,#excellent-ending) .corridor-dialogue-controls .corridor-exit { position:static !important; }
+
+/* The texture and all overlays must share one rectangle, including on short monitors. */
+#final-result-screen .final-result-book {
+  width:min(94vw,calc((100dvh - 100px)*1.77577)) !important; max-height:none !important;
+  aspect-ratio:1671/941; flex:none !important; margin-bottom:54px; transform:none !important;
+}
+#final-result-screen .final-result-portrait { left:10.5% !important; top:31.5% !important; width:13.8% !important; height:37% !important; }
+#final-result-screen [data-field='surname'],#final-result-screen [data-field='given-name'],#final-result-screen [data-field='group'] { left:28.2% !important; width:18% !important; }
+#final-result-screen [data-field='correct'] { left:70.8% !important; }
+#final-result-screen [data-field='total'] { left:75.7% !important; }
+#final-result-screen [data-field='archetype'] { left:72.4% !important; top:58.6% !important; width:17.6% !important; height:7% !important; white-space:normal !important; overflow-wrap:anywhere; font-size:1.65cqw !important; line-height:1.05 !important; }
+#final-result-screen [data-field='duration'] { left:71.3% !important; width:10% !important; }
+#final-result-screen [data-field='date'] { left:61.5% !important; width:27.2% !important; }
