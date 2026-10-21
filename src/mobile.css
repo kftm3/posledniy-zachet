@@ -1,7 +1,7 @@
 /* The cheat entry is phone-only; desktop keeps keyboard codes. */
 .character-cheat-toggle,.character-cheat-panel { display:none; }
 /* mobile.ts owns this flag, including the native-phone pointer fallback. */
-:root:where(.phone-layout) { --phone-left:max(12px,env(safe-area-inset-left)); --phone-right:max(12px,env(safe-area-inset-right)); --phone-bottom:max(6px,env(safe-area-inset-bottom)); }
+:root:where(.phone-layout) { --phone-left:max(12px,env(safe-area-inset-left)); --phone-right:max(12px,env(safe-area-inset-right)); --phone-bottom:max(6px,env(safe-area-inset-bottom)); --document-arrows:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8efff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 9 5-5 5 5M7 15l5 5 5-5'/%3E%3C/svg%3E"); }
 html:where(.phone-layout),:where(html.phone-layout) body,:where(html.phone-layout) #app { height:100dvh; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 :where(html.phone-layout) .game-root { height:100dvh; }
 :where(html.phone-layout) #app .game-stage { width:100%; height:100%; }
@@ -16,10 +16,16 @@ html:where(.phone-layout),:where(html.phone-layout) body,:where(html.phone-layou
 :where(html.phone-layout) #character-screen .male-panel { left:var(--phone-left) !important; right:auto !important; }
 :where(html.phone-layout) #character-screen .female-panel { right:var(--phone-right) !important; left:auto !important; }
 :where(html.phone-layout) #character-screen .panel-art { width:100%; height:100%; object-fit:fill; }
-:where(html.phone-layout) #character-screen .character-full-sprite { left:calc(76.4% + 1px) !important; right:auto !important; top:calc(12px - 18dvh) !important; bottom:auto !important; height:118dvh !important; max-height:none !important; max-width:none !important; transform:translateX(-50%) !important; }
+:where(html.phone-layout) #character-screen .character-full-sprite { left:calc(76.4% + 1px) !important; right:auto !important; top:calc(24px - 18dvh) !important; bottom:auto !important; height:118dvh !important; max-height:none !important; max-width:none !important; transform:translateX(-50%) !important; }
 :where(html.phone-layout) #character-screen .female-panel .character-full-sprite { left:24% !important; }
-:where(html.phone-layout) #character-screen .slot-hitboxes { top:auto !important; bottom:5px !important; left:6% !important; right:auto !important; width:88% !important; height:54px !important; display:flex !important; gap:4px !important; transform:none !important; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; overscroll-behavior-x:contain; }
+:where(html.phone-layout) #character-screen .slot-hitboxes { top:auto !important; bottom:5px !important; left:6% !important; right:auto !important; width:88% !important; height:54px !important; display:grid !important; grid-template-columns:repeat(5,minmax(0,1fr)); grid-template-rows:54px; gap:4px !important; transform:none !important; overflow:visible; scrollbar-width:none; overscroll-behavior-x:contain; }
 :where(html.phone-layout) #character-screen .portrait-slot { flex:0 0 calc((100% - 16px)/5); width:auto !important; min-width:0; height:100% !important; padding:1px; }
+/* Unlocks occupy a second row below the unchanged five regular portraits. */
+:where(html.phone-layout) #character-screen .portrait-slot:not([data-secret]) { grid-row:1; }
+:where(html.phone-layout) #character-screen .male-panel .slot-hitboxes:has([data-secret]:not(.is-hidden)) { height:112px !important; bottom:-53px !important; grid-template-rows:repeat(2,54px); }
+:where(html.phone-layout) #character-screen .male-panel .portrait-slot[data-secret] { position:relative !important; inset:auto !important; width:auto !important; height:54px !important; transform:none !important; grid-row:2; }
+:where(html.phone-layout) #character-screen .secret-portrait-slot { grid-column:3; }
+:where(html.phone-layout) #character-screen .devil-portrait-slot { grid-column:2; }
 :where(html.phone-layout) #character-screen .arrow-hit { top:auto !important; bottom:10px !important; height:44px !important; width:28px !important; z-index:8; }
 :where(html.phone-layout) #character-screen .arrow-left { left:-10px !important; }
 :where(html.phone-layout) #character-screen .arrow-right { right:-10px !important; left:auto !important; }
@@ -94,7 +100,7 @@ html:where(.phone-layout),:where(html.phone-layout) body,:where(html.phone-layou
 :where(html.phone-layout) #corridor-screen #corridor-choices button { min-height:32px !important; max-height:none !important; padding:5px 9px !important; font-size:11px !important; line-height:1.15 !important; transform:none !important; }
 :where(html.phone-layout) #corridor-screen #corridor-exit { right:calc(var(--phone-right) + 22px); bottom:calc(var(--phone-bottom) + 12px); }
 :where(html.phone-layout) :is(#app,#excellent-ending) .corridor-topline,:where(html.phone-layout) #app .classroom-topline { top:8px; left:var(--phone-left); right:var(--phone-right); font-size:9px; }
-:where(html.phone-layout) :is(#app,#excellent-ending) .corridor-character-sprite,:where(html.phone-layout) :is(#app,#excellent-ending) .corridor-friend-sprite,:where(html.phone-layout) #teacher-intro-screen .teacher-scene-sprite,:where(html.phone-layout) #teacher-intro-screen .teacher-hero-sprite,:where(html.phone-layout) #exam-screen .exam-teacher-sprite,:where(html.phone-layout) #exam-screen .exam-hero-sprite { height:100% !important; max-height:none !important; width:auto !important; max-width:43% !important; bottom:0 !important; transform:none !important; opacity:1; object-fit:contain; object-position:center bottom; }
+:where(html.phone-layout) :is(#app,#excellent-ending) .corridor-character-sprite,:where(html.phone-layout) :is(#app,#excellent-ending) .corridor-friend-sprite,:where(html.phone-layout) #teacher-intro-screen .teacher-scene-sprite,:where(html.phone-layout) #teacher-intro-screen .teacher-hero-sprite,:where(html.phone-layout) #exam-screen .exam-teacher-sprite,:where(html.phone-layout) #exam-screen .exam-hero-sprite { height:100% !important; max-height:none !important; width:auto !important; max-width:43% !important; bottom:-12px !important; transform:none !important; opacity:1; object-fit:contain; object-position:center bottom; }
 :where(html.phone-layout) :is(#app,#excellent-ending) .corridor-character-sprite,:where(html.phone-layout) #teacher-intro-screen .teacher-scene-sprite,:where(html.phone-layout) #exam-screen .exam-teacher-sprite { left:8% !important; right:auto !important; }
 :where(html.phone-layout) :is(#app,#excellent-ending) .corridor-friend-sprite,:where(html.phone-layout) #teacher-intro-screen .teacher-hero-sprite,:where(html.phone-layout) #exam-screen .exam-hero-sprite { right:8% !important; left:auto !important; transform:scaleX(-1) !important; }
 :where(html.phone-layout) #teacher-intro-screen .teacher-dialogue-layout:has(#teacher-choices:not(.is-hidden)) { height:108px !important; }
@@ -119,9 +125,11 @@ html:where(.phone-layout),:where(html.phone-layout) body,:where(html.phone-layou
 :where(html.phone-layout) #exam-screen.exam-paper-open .exam-action-status { grid-area:status; position:static !important; width:100%; max-width:100%; min-height:0; margin:0; font-size:11px; }
 :where(html.phone-layout) #exam-screen.exam-paper-open .exam-dialogue-controls { grid-area:controls !important; margin:0 !important; height:20px; }
 :where(html.phone-layout) #app .classroom-gallery-background { inset:0; background-size:cover; background-position:center 45%; animation:none !important; transform:none !important; }
-:where(html.phone-layout) #cameo-overlay .cameo-scene-frame { top:0; }
-:where(html.phone-layout) #cameo-overlay .cameo-scene-frame.is-teacher-shot,:where(html.phone-layout) #excellent-ending .excellent-ending-scene { bottom:calc(clamp(78px,calc(25dvh - var(--phone-bottom)),104px) + var(--phone-bottom) + 6px); }
-:where(html.phone-layout) #cameo-overlay .cameo-scene-image,:where(html.phone-layout) #excellent-ending .excellent-ending-image { object-fit:contain; object-position:center top; transform:none !important; animation:none !important; }
+:where(html.phone-layout) #cameo-overlay .cameo-scene-frame,:where(html.phone-layout) #excellent-ending .excellent-ending-scene { inset:0; }
+:where(html.phone-layout) #cameo-overlay .cameo-scene-image,:where(html.phone-layout) #excellent-ending .excellent-ending-image { object-fit:cover; transform:none !important; animation:none !important; }
+/* Keep the shirt/logo and the laptop code above the dialogue in entry/goodbye shots. */
+:where(html.phone-layout) #cameo-overlay .cameo-scene-image { object-position:center 16%; }
+:where(html.phone-layout) #cameo-overlay .is-teacher-shot .cameo-scene-image,:where(html.phone-layout) #excellent-ending .excellent-ending-image { object-position:center 30%; }
 :where(html.phone-layout) #excellent-ending .excellent-ending-period { top:8px; left:var(--phone-left); font-size:12px; }
 /* Fixed compact rows prevent links, artwork and long titles from stretching a card. */
 :where(html.phone-layout) #now-playing-card { left:50%; right:auto; transform:translate(-50%,-120%); }
@@ -178,5 +186,5 @@ html:where(.phone-layout),:where(html.phone-layout) body,:where(html.phone-layou
 /* Give scrollable screens a visible hint even when Safari hides its scrollbar. */
 :where(html.phone-layout) #skills-screen .skills-header p::after { content:' · Листай вниз ↕'; color:#8bd8ff; white-space:nowrap; }
 :where(html.phone-layout) #skills-screen .skills-layout { scrollbar-width:thin; scrollbar-color:#47b8ff #081a35; }
-:where(html.phone-layout) #ticket-screen .ticket-heading::after { content:'Прокрутите билет ↕'; display:block; margin-top:3px; color:#d8efff; font:11px/1.2 'Segoe UI',sans-serif; }
-:where(html.phone-layout) #final-result-screen::before { content:'Зачётку можно прокрутить ↕'; position:fixed; top:6px; right:var(--phone-right); z-index:3; padding:4px 8px; border-radius:4px; color:white; background:#071832d9; font:11px/1.2 'Segoe UI',sans-serif; pointer-events:none; }
+:where(html.phone-layout) #ticket-screen .ticket-heading::after { content:'Прокрутите билет'; display:inline-block; margin-top:3px; padding-right:22px; background:var(--document-arrows) right center/16px 16px no-repeat; color:#d8efff; font:11px/1.2 'Segoe UI',sans-serif; }
+:where(html.phone-layout) #final-result-screen::before { content:'Зачётку можно прокрутить'; position:fixed; top:6px; right:var(--phone-right); z-index:3; padding:4px 30px 4px 8px; border-radius:4px; color:white; background:var(--document-arrows) right 8px center/16px 16px no-repeat,#071832d9; font:11px/1.2 'Segoe UI',sans-serif; pointer-events:none; }

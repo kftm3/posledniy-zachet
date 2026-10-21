@@ -56,6 +56,7 @@ test.describe('phone cheat input', () => {
     const toggle = page.getByRole('button', { name: 'Ввести чит-код', exact: true });
     const panel = page.locator('#character-cheat-panel');
     const input = page.locator('#character-cheat-input');
+    const regularBefore = await page.locator('.male-panel .portrait-slot:not([data-secret])').evaluateAll(elements => elements.map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}));
     await toggle.tap();
     await page.setViewportSize({ width: 874, height: 180 }); // Visual space remaining above a landscape keyboard.
     await expect.poll(() => panel.evaluate(el => el.getBoundingClientRect().height)).toBe(180);
@@ -73,6 +74,18 @@ test.describe('phone cheat input', () => {
     await toggle.tap(); await input.fill(' DEVIL '); await input.press('Enter');
     await expect(panel).toBeHidden();
     await expect(page.locator('#male-boy7-sprite')).toHaveClass(/is-visible/);
+    const regular = page.locator('.male-panel .portrait-slot:not([data-secret])');
+    await expect(regular).toHaveCount(5);
+    const regularAfter = await regular.evaluateAll(elements => elements.map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}));
+    for(let n=0;n<5;n++)for(const key of ['x','y','width','height'] as const)expect(regularAfter[n][key]).toBeCloseTo(regularBefore[n][key],0);
+    for(const secret of await page.locator('.male-panel .portrait-slot[data-secret]').all()) {
+      const box = (await secret.boundingBox())!;
+      expect(box.y).toBeGreaterThan(regularAfter[0].y + regularAfter[0].height);
+      expect(box.y + box.height).toBeLessThan(page.viewportSize()!.height);
+      expect(await secret.evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===el;})).toBe(true);
+      await secret.tap();await expect(secret).toHaveClass(/is-selected/);
+    }
+    await page.locator('.portrait-slot[data-secret="devil"]').tap();
     await selectCharacter(page);
     await expect(page.locator('#male-boy7-sprite')).toHaveClass(/is-visible/);
     await toggle.tap(); await page.getByRole('button', { name: 'Закрыть ввод чит-кода' }).tap();

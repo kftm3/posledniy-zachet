@@ -35,6 +35,8 @@ for (const viewport of [{width:1280,height:720}, {width:1920,height:1080}, {widt
     await next.click(); await next.click();
     const answers = page.locator('#exam-answer-list');
     await expect(answers).toBeVisible();
+    await expect.poll(() => frame.evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(viewport.height * .5);
+    await expect.poll(()=>text.evaluate(el=>parseFloat(getComputedStyle(el).paddingLeft))).toBeGreaterThanOrEqual(10);
     await expect.poll(() => text.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThan(font);
     await text.evaluate(el => { el.textContent = 'Очень длинная формулировка экзаменационного вопроса, которая должна переноситься на несколько строк и оставаться отдельно от кнопок действий и вариантов ответа. '.repeat(5); });
     await inside(text, frame);

@@ -20,6 +20,19 @@ async function contained(locator: Locator, parent?: Locator) {
   }, parentElement)).toBe(true);
 }
 
+// Subject points use coordinates in the source artwork, independent of CSS framing.
+async function subjectAboveDialogue(image: Locator, points: number[][]) {
+  await expect.poll(() => image.evaluate((node, points) => {
+    const img = node as HTMLImageElement, box = img.getBoundingClientRect();
+    const style = getComputedStyle(img), position = style.objectPosition.split(' ').map(parseFloat);
+    const scale = Math.max(box.width / img.naturalWidth, box.height / img.naturalHeight);
+    const left = box.x + (box.width - img.naturalWidth * scale) * position[0] / 100;
+    const top = box.y + (box.height - img.naturalHeight * scale) * position[1] / 100;
+    const dialogue = img.closest('#cameo-overlay,#excellent-ending')!.querySelector('.corridor-dialogue-layout')!.getBoundingClientRect();
+    return points.every(([x,y]) => left + x * scale >= 0 && left + x * scale <= innerWidth && top + y * scale >= 0 && top + y * scale < dialogue.top);
+  }, points)).toBe(true);
+}
+
 async function settle(page: Page) {
   await expect(page.locator('#screen-transition')).toHaveAttribute('aria-hidden', 'true');
 }
@@ -111,6 +124,8 @@ for (const viewport of [{ width: 874, height: 353 }, { width: 812, height: 320 }
     expect(await page.evaluate(() => visualViewport!.scale)).toBe(1);
     await page.locator('#skills-continue').tap();
     await settle(page);
+    expect(await page.locator('.ticket-heading').evaluate(el => getComputedStyle(el,'::after').content)).not.toMatch(/[↕⬆⬇]/u);
+    expect(await page.locator('.ticket-heading').evaluate(el => getComputedStyle(el,'::after').backgroundImage)).toContain('data:image/svg+xml');
     await contained(page.locator('.ticket-viewport'));
     expect((await page.locator('.ticket-wrap').boundingBox())!.width).toBeGreaterThan(viewport.width * .77);
     expect(await page.locator('.ticket-wrap').evaluate(el => getComputedStyle(el).transform)).toBe('none');
@@ -201,6 +216,7 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
   const examFrame = page.locator('#exam-dialogue-panel');
   expect((await examFrame.boundingBox())!.height).toBeCloseTo(commonHeight, 0);
   expect((await page.locator('#exam-teacher-sprite').boundingBox())!.height).toBeGreaterThan(300);
+  await expect.poll(() => page.locator('#exam-teacher-sprite').evaluate(el => el.getBoundingClientRect().bottom)).toBeCloseTo(page.viewportSize()!.height + 12, 0);
   await page.locator('#exam-next').tap();
   await page.locator('#exam-next').tap();
   await expect(page.locator('#exam-answer-list')).toBeVisible();
@@ -241,12 +257,16 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await expect(page.locator('#cameo-overlay')).toBeVisible();
   await contained(page.locator('#cameo-dialogue-panel'));
   await contained(page.locator('#cameo-next'), page.locator('#cameo-dialogue-panel'));
-  expect(await page.locator('#cameo-scene-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
+  expect(await page.locator('#cameo-scene-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
+  await subjectAboveDialogue(page.locator('#cameo-scene-image'), [[810,100],[810,315],[905,375],[1120,490],[1190,515]]);
   expect((await page.locator('.cameo-scene-frame').boundingBox())!.y).toBe(0);
   await page.locator('#cameo-next').tap();
   await expect(page.locator('.cameo-scene-frame')).toHaveClass(/is-teacher-shot/);
-  await expect.poll(() => page.evaluate(() => document.querySelector('.cameo-scene-frame')!.getBoundingClientRect().bottom < document.getElementById('cameo-dialogue-panel')!.getBoundingClientRect().top)).toBe(true);
-  for (let n = 0; n < 2; n++) await page.locator('#cameo-next').tap();
+  await subjectAboveDialogue(page.locator('#cameo-scene-image'), [[710,150],[910,360]]);
+  await page.locator('#cameo-next').tap();
+  await expect(page.locator('#cameo-scene-image')).toHaveAttribute('src', /kftm3-goodbye[.]webp$/);
+  await subjectAboveDialogue(page.locator('#cameo-scene-image'), [[810,140],[810,315],[905,375],[1120,490],[1190,515]]);
+  await page.locator('#cameo-next').tap();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:exam-scene-finished', {
     detail: { correct: 6, isExcellentEnding: true, archetype: 'ОТЛИЧНИК' },
   })));
@@ -262,11 +282,13 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   const endingPanel = page.locator('#excellent-ending .corridor-dialogue-layout');
   await contained(page.locator('#excellent-ending-next'), endingPanel);
   await contained(page.locator('#excellent-ending-text'), endingPanel);
-  expect(await page.locator('#excellent-ending-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
-  await expect.poll(() => page.evaluate(() => document.getElementById('excellent-ending-scene')!.getBoundingClientRect().bottom < document.querySelector('#excellent-ending .corridor-dialogue-layout')!.getBoundingClientRect().top)).toBe(true);
+  expect(await page.locator('#excellent-ending-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
+  await expect.poll(() => page.locator('#excellent-ending-scene').evaluate(el => el.getBoundingClientRect().height)).toBe(page.viewportSize()!.height);
   for (let n = 0; n < 25 && !await page.locator('#ending-credits-video').count(); n++) await page.locator('#excellent-ending-next').tap();
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
   await expect(page.locator('#final-result-screen')).toBeVisible();
+  expect(await page.locator('#final-result-screen').evaluate(el => getComputedStyle(el,'::before').content)).not.toMatch(/[↕⬆⬇]/);
+  expect(await page.locator('#final-result-screen').evaluate(el => getComputedStyle(el,'::before').backgroundImage)).toContain('data:image/svg+xml');
   const book = page.locator('.final-result-book');
   await expect(book).toBeVisible();
   expect((await book.boundingBox())!.width).toBeGreaterThan(page.viewportSize()!.width * .8);

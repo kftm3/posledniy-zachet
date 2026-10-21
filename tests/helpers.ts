@@ -49,6 +49,7 @@ export async function recordCueStarts(page: Page) {
       const inEnding = ending && !ending.classList.contains('is-hidden');
       (window as any).__cueStarts.push({
         speaker: document.getElementById(inEnding ? 'excellent-ending-speaker' : 'classmates-speaker')?.textContent,
+        progress: inEnding ? document.getElementById('excellent-ending-progress')?.textContent : null,
         duration: this.buffer?.duration,
         offset: args[1] ?? 0,
       });

@@ -1094,7 +1094,8 @@ document.getElementById('character-cheat-form')?.addEventListener('submit', even
   if (code === 'hesoyam' ? secretPresetUnlocked : devilPresetUnlocked) {
     setPreset('male', code === 'hesoyam' ? SECRET_MALE_PRESET : DEVIL_MALE_PRESET);
   }
-  document.querySelector('.male-panel .portrait-slot.is-selected')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  // Both portrait rows remain visible; keep the selection screen at its origin.
+  if (!isPhoneLayout()) document.querySelector('.male-panel .portrait-slot.is-selected')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 });
 
 document.querySelectorAll<HTMLElement>('.selector-panel').forEach((panel) => {
@@ -2812,6 +2813,15 @@ function buildUniversalEndingBeats(correctAnswers: number, playerName: string, i
   ];
 }
 
+/** Ring on the lead-in to mom's call; other phone calls keep their own cue. */
+function endingBeatHasPhoneCue(index: number): boolean {
+  const beat = excellentEndingBeats[index];
+  if (!beat) return false;
+  const momCall = 'МАМА · ТЕЛЕФОН';
+  return excellentEndingBeats[index + 1]?.speaker === momCall
+    || (beat.speaker.includes('ТЕЛЕФОН') && beat.speaker !== momCall);
+}
+
 function showExcellentEndingBeat(playCue = true): void {
   excellentEndingPhoneSound.stop();
   const beat = excellentEndingBeats[excellentEndingIndex];
@@ -2831,7 +2841,7 @@ function showExcellentEndingBeat(playCue = true): void {
   if (period) { period.textContent = beat.period === 'past' ? 'ПРОШЛОЙ НОЧЬЮ:' : beat.period === 'evening' ? 'ПРОШЛЫМ ВЕЧЕРОМ:' : ''; period.classList.toggle('is-hidden', beat.period !== 'past' && beat.period !== 'evening'); }
   if (speaker) speaker.textContent = beat.speaker;
   if (text) text.textContent = beat.text;
-  if (playCue && beat.speaker.includes('ТЕЛЕФОН')) excellentEndingPhoneSound.play();
+  if (playCue && endingBeatHasPhoneCue(excellentEndingIndex)) excellentEndingPhoneSound.play();
   if (progress) progress.textContent = `КОНЦОВКА · ${excellentEndingIndex + 1} / ${excellentEndingBeats.length}`;
   scene?.classList.remove('is-fading');
 }
@@ -3282,7 +3292,7 @@ async function advanceExcellentEnding(): Promise<void> {
   if (excellentEndingIndex >= excellentEndingBeats.length - 3) prepareCreditsVideo();
   const current = excellentEndingBeats[excellentEndingIndex];
   const upcoming = excellentEndingBeats[excellentEndingIndex + 1];
-  const nextReady = Promise.all([readyImages([upcoming.image]), ...(upcoming.speaker.includes('ТЕЛЕФОН') ? [excellentEndingPhoneSound.prepare()] : [])]);
+  const nextReady = Promise.all([readyImages([upcoming.image]), ...(endingBeatHasPhoneCue(excellentEndingIndex + 1) ? [excellentEndingPhoneSound.prepare()] : [])]);
   // After the flashback sequence (first three dialogue beats), hold black for 3 seconds
   // before revealing the present-day classroom.
   const isSpecialArchetypeEnding = excellentEndingBeats[0]?.image.includes('/brave/') || excellentEndingBeats[0]?.image.includes('/trickster/') || excellentEndingBeats[0]?.image.includes('/charisma/') || excellentEndingBeats[0]?.image.includes('/analyst/') || excellentEndingBeats[0]?.image.includes('/observer/') || excellentEndingBeats[0]?.image.includes('/universal/');
@@ -3336,7 +3346,7 @@ function startExcellentEnding(correctAnswers: number, endingType: 'brave' | 'tri
   // Three seconds of black before the first frame, followed by a gentle reveal.
   void Promise.all([wait(3000), readyImages([excellentEndingBeats[0].image]), excellentEndingPhoneSound.prepare()]).then(() => {
     overlay.classList.remove('is-blackout');
-    if (excellentEndingBeats[excellentEndingIndex]?.speaker.includes('ТЕЛЕФОН')) excellentEndingPhoneSound.play();
+    if (endingBeatHasPhoneCue(excellentEndingIndex)) excellentEndingPhoneSound.play();
     excellentEndingTransition = false;
   });
 }

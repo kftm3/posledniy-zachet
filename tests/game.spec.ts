@@ -112,7 +112,9 @@ test(`play through corridor, classroom, exam and ${profile} ending without broke
   const cues = await page.evaluate(() => (window as any).__cueStarts);
   expect(cues.some((cue: any) => cue.speaker === 'АРТУР' && cue.duration > 0)).toBe(true);
   expect(cues.some((cue: any) => cue.speaker === 'КОТ' && cue.duration > 0)).toBe(true);
-  expect(cues.some((cue: any) => cue.speaker === 'МАМА · ТЕЛЕФОН' && cue.duration > 3)).toBe(true);
+  const endingLines = Number((await page.locator('#excellent-ending-progress').textContent())!.split('/')[1].trim());
+  expect(cues.some((cue: any) => cue.progress?.endsWith(`${endingLines - 1} / ${endingLines}`) && cue.duration > 3)).toBe(true);
+  expect(cues.some((cue: any) => cue.speaker === 'МАМА · ТЕЛЕФОН')).toBe(false);
   // Exercise the actual media completion handler without waiting for the whole film.
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
   await expect(page.locator('#final-result-screen')).toBeVisible();

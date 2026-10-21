@@ -39,16 +39,16 @@
 :where(html:not(.phone-layout)) #teacher-choices { grid-area:choices !important; padding:0 !important; margin:0 !important; }
 :where(html:not(.phone-layout)) #final-result-screen .final-result-portrait { object-fit:cover !important; object-position:center 20%; }
 /* Question above two equal columns of compact answer/action buttons. */
-:where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-dialogue-layout { height:min(64vh,1000px) !important; min-height:360px !important; --exam-choice-height:clamp(44px,6.3vmin,136px); }
+:where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-dialogue-layout { height:clamp(320px,48vh,860px) !important; min-height:0 !important; --exam-choice-height:clamp(42px,5.1vmin,110px); }
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-dialogue-left {
     grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
     grid-template-rows:auto minmax(48px,1fr) auto auto auto !important;
-    grid-template-areas:'speaker speaker' 'question question' 'actions answers' 'status status' 'controls controls'; gap:1vh 2vw !important;
+    grid-template-areas:'speaker speaker' 'question question' 'actions answers' 'status status' 'controls controls'; gap:.7vh 2vw !important;
   }
-:where(html:not(.phone-layout)) #exam-screen.exam-paper-open #exam-dialogue-text { grid-area:question !important; font-size:clamp(20px,2.1vmin,48px) !important; font-weight:600; }
+:where(html:not(.phone-layout)) #exam-screen.exam-paper-open #exam-dialogue-text { grid-area:question !important; font-size:clamp(20px,2.1vmin,48px) !important; font-weight:600; padding-left:clamp(10px,1.2vw,32px) !important; }
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-answer-list,:where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-paper-actions {
     position:static !important; inset:auto !important; width:100% !important; min-height:0; transform:none !important; display:grid !important;
-    grid-template-columns:minmax(0,1fr) !important; grid-template-rows:repeat(3,var(--exam-choice-height)); gap:1vh !important; margin:0; padding:0; align-self:start;
+    grid-template-columns:minmax(0,1fr) !important; grid-template-rows:repeat(3,var(--exam-choice-height)); gap:.7vh !important; margin:0; padding:0; align-self:start;
   }
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-answer-list { grid-area:answers !important; }
 :where(html:not(.phone-layout)) #exam-screen.exam-paper-open .exam-paper-actions { grid-area:actions !important; }
