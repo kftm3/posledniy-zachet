@@ -10,6 +10,7 @@ import { createAudio } from './media';
 import { loadImage, warmImages, readyImages, prepareAudio, prepareMedia, swapImage } from './asset-loading';
 import { gameStorage } from './storage';
 import { prepareFarewell, showFarewell } from './farewell';
+import { prepareMusicCover } from './music-covers';
 
 type Gender = 'male' | 'female';
 type SelectionState = { gender: Gender; malePreset: number; femalePreset: number };
@@ -347,6 +348,18 @@ const corridorAmbience = document.querySelector<HTMLAudioElement>('#corridor-amb
 // GTA IV-inspired Now Playing card. This is a local UI only: Spotify links open
 // search results and never replace the game's existing local audio files.
 type NowPlayingTrack = { title: string; artist: string; spotifyQuery: string; yandexUrl?: string; mood?: 'green' | 'red' | 'blue' | 'yellow'; cover?: string };
+const nowPlayingByPath: Record<string, NowPlayingTrack> = {
+  '/audio/archetypes/archetype-excellent.mp3': { title: 'RV 269 «Весна»: I. Allegro', artist: 'Антонио Вивальди', spotifyQuery: 'Antonio Vivaldi RV 269 Spring I Allegro', yandexUrl: 'https://music.yandex.ru/album/10846125/track/66491628?ref_id=6255D249-7199-4C4B-96FA-D5D8C09E5DE7&utm_medium=share_link_tg&utm_source=mobile_ios', mood: 'yellow', cover: '/assets/music-covers/vivaldi.webp' },
+  '/audio/archetypes/archetype-trickster.mp3': { title: 'Vermilion', artist: 'Slipknot', spotifyQuery: 'Slipknot Vermilion', mood: 'red', cover: '/assets/music-covers/vermilion.webp' },
+  '/audio/archetypes/archetype-gosling.mp3': { title: 'Nightcall', artist: 'Kavinsky', spotifyQuery: 'Kavinsky Nightcall', mood: 'blue', cover: '/assets/music-covers/nightcall.webp' },
+  '/audio/archetypes/archetype-analyst.mp3': { title: 'Take A Look Around', artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Take A Look Around', mood: 'red', cover: '/assets/music-covers/take-a-look-around.webp' },
+  '/audio/archetypes/archetype-bold.mp3': { title: "Rollin'", artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Rollin', mood: 'red', cover: '/assets/music-covers/rollin.webp' },
+  '/audio/archetypes/archetype-observer.mp3': { title: 'Спокойная ночь', artist: 'Кино', spotifyQuery: 'Кино Спокойная ночь', mood: 'red', cover: '/assets/music-covers/spokoynaya-noch.webp' },
+  '/audio/archetypes/archetype-universal.mp3': { title: 'Sometimes', artist: 'Mattyeux', spotifyQuery: 'Mattyeux Sometimes', mood: 'blue', cover: '/assets/music-covers/sometimes.webp' },
+  '/audio/easter-eggs/devil-corridor.mp3': { title: 'Eyeless', artist: 'Slipknot', spotifyQuery: 'Slipknot Eyeless', mood: 'red', cover: '/assets/music-covers/eyeless.webp' },
+  '/audio/easter-eggs/welcome-to-san-andreas.mp3': { title: 'Welcome to San Andreas', artist: 'Young Maylay', spotifyQuery: 'Young Maylay Welcome to San Andreas', mood: 'green', cover: '/assets/music-covers/hesoyam.webp' }
+};
+let nowPlayingVersion = 0;
 let nowPlayingCard: HTMLElement | null = null;
 let nowPlayingHideTimer: number | undefined;
 function ensureNowPlayingCard(): HTMLElement {
@@ -387,40 +400,40 @@ function showNowPlaying(track: NowPlayingTrack): void {
   if (title) title.textContent = track.title;
   if (artist) artist.textContent = track.artist;
   const cover = card.querySelector<HTMLElement>('.np-cover');
-  const coverImage = card.querySelector<HTMLImageElement>('.np-cover-image');
+  const version = ++nowPlayingVersion;
   const coverMark = card.querySelector<HTMLElement>('.np-cover-mark');
-  if (cover && coverImage) {
-    // Use a real img element instead of CSS background-image: this avoids
-    // background shorthand rules accidentally replacing the album artwork.
-    cover.classList.remove('has-cover');
-    coverImage.onload = () => {
-      cover.classList.add('has-cover');
-      if (coverMark) coverMark.hidden = true;
-    };
-    coverImage.onerror = () => {
-      cover.classList.remove('has-cover');
-      coverImage.removeAttribute('srcset');
-      coverImage.removeAttribute('src');
-      if (coverMark) coverMark.hidden = false;
-      console.warn(`Album cover could not be loaded: ${track.cover}`);
-    };
-    if (track.cover) {
-      coverImage.sizes = '(pointer: coarse) and (max-width: 1100px) 36px, (max-width: 600px) 58px, 68px';
-      coverImage.srcset = `${track.cover.replace('.webp', '-128.webp')} 128w, ${track.cover.replace('.webp', '-256.webp')} 256w, ${track.cover} 1254w`;
-      coverImage.src = track.cover;
-    } else {
-      coverImage.removeAttribute('srcset');
-      coverImage.removeAttribute('src');
-      if (coverMark) coverMark.hidden = false;
-    }
+  // Cached images are moved into the card; never mutate their source on a track change.
+  cover?.querySelector('.np-cover-image')?.remove();
+  cover?.classList.remove('has-cover');
+  if (coverMark) coverMark.hidden = false;
+  if (cover && track.cover) {
+    void prepareMusicCover(track.cover, 'high').then(image => {
+      if (version !== nowPlayingVersion || card.hidden) return;
+      if (image) {
+        image.className = 'np-cover-image'; image.alt = '';
+        cover.prepend(image); cover.classList.add('has-cover');
+        if (coverMark) coverMark.hidden = true;
+      }
+      // Let the player see a delayed cover for the full card duration.
+      scheduleNowPlayingHide(card, version, 3000);
+    });
   }
   if (titleLink) titleLink.href = spotifyUrl;
   if (link) link.href = spotifyUrl;
   if (yandexLink) { yandexLink.href = track.yandexUrl || ''; yandexLink.hidden = !track.yandexUrl; }
   requestAnimationFrame(() => card.classList.add('is-visible'));
-  nowPlayingHideTimer = window.setTimeout(() => { card.classList.remove('is-visible'); window.setTimeout(() => { if (!card.classList.contains('is-visible')) card.hidden = true; }, 400); }, 3000);
+  scheduleNowPlayingHide(card, version, track.cover ? 8000 : 3000);
+}
+function scheduleNowPlayingHide(card: HTMLElement, version: number, duration: number): void {
+  window.clearTimeout(nowPlayingHideTimer);
+  nowPlayingHideTimer = window.setTimeout(() => {
+    if (version !== nowPlayingVersion) return;
+    card.classList.remove('is-visible');
+    window.setTimeout(() => { if (version === nowPlayingVersion && !card.classList.contains('is-visible')) card.hidden = true; }, 400);
+  }, duration);
 }
 function hideNowPlaying(): void {
+  nowPlayingVersion++;
   if (nowPlayingHideTimer !== undefined) window.clearTimeout(nowPlayingHideTimer);
   nowPlayingHideTimer = undefined;
   const card = nowPlayingCard;
@@ -697,11 +710,14 @@ function prepareCorridor(): void {
   prepareFriend();
   const key = selectedCharacterKey();
   const track = corridorTrack();
+  const cover = nowPlayingByPath[track]?.cover;
+  if (cover) void prepareMusicCover(cover);
   const firstImages = [...corridorAssets, selectedSpritePath('thinking'), `/assets/characters/${corridorFriend.folder}/thinking.webp`];
   // Promote entry assets out of the speculative queue. Start the future audio only
   // after the entry artwork, so a large track cannot starve the first scene's images.
   void Promise.all(firstImages.map(source => loadImage(source))).then(() => {
     if (selectedCharacterKey() !== key || corridorTrack() !== track) return;
+    if (cover) void prepareMusicCover(cover, 'high');
     warmSelectedEmotions();
     warmImages(emotionNames.map(emotion => `/assets/characters/${corridorFriend.folder}/${emotion}.webp`));
     prepareAudio(archetypeMusic, track);
@@ -724,18 +740,8 @@ function startArchetypeMusic(): void {
   archetypeMusic.pause();
   prepareAudio(archetypeMusic, track);
   archetypeMusic.currentTime = 0;
-  const nowPlayingByPath: Record<string, NowPlayingTrack> = {
-    '/audio/archetypes/archetype-excellent.mp3': { title: 'RV 269 «Весна»: I. Allegro', artist: 'Антонио Вивальди', spotifyQuery: 'Antonio Vivaldi RV 269 Spring I Allegro', yandexUrl: 'https://music.yandex.ru/album/10846125/track/66491628?ref_id=6255D249-7199-4C4B-96FA-D5D8C09E5DE7&utm_medium=share_link_tg&utm_source=mobile_ios', mood: 'yellow', cover: '/assets/music-covers/vivaldi.webp' },
-    '/audio/archetypes/archetype-trickster.mp3': { title: 'Vermilion', artist: 'Slipknot', spotifyQuery: 'Slipknot Vermilion', mood: 'red', cover: '/assets/music-covers/vermilion.webp' },
-    '/audio/archetypes/archetype-gosling.mp3': { title: 'Nightcall', artist: 'Kavinsky', spotifyQuery: 'Kavinsky Nightcall', mood: 'blue', cover: '/assets/music-covers/nightcall.webp' },
-    '/audio/archetypes/archetype-analyst.mp3': { title: 'Take A Look Around', artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Take A Look Around', mood: 'red', cover: '/assets/music-covers/take-a-look-around.webp' },
-    '/audio/archetypes/archetype-bold.mp3': { title: "Rollin'", artist: 'Limp Bizkit', spotifyQuery: 'Limp Bizkit Rollin', mood: 'red', cover: '/assets/music-covers/rollin.webp' },
-    '/audio/archetypes/archetype-observer.mp3': { title: 'Спокойная ночь', artist: 'Кино', spotifyQuery: 'Кино Спокойная ночь', mood: 'red', cover: '/assets/music-covers/spokoynaya-noch.webp' },
-    '/audio/archetypes/archetype-universal.mp3': { title: 'Sometimes', artist: 'Mattyeux', spotifyQuery: 'Mattyeux Sometimes', mood: 'blue', cover: '/assets/music-covers/sometimes.webp' },
-    '/audio/easter-eggs/devil-corridor.mp3': { title: 'Eyeless', artist: 'Slipknot', spotifyQuery: 'Slipknot Eyeless', mood: 'red', cover: '/assets/music-covers/eyeless.webp' },
-    '/audio/easter-eggs/welcome-to-san-andreas.mp3': { title: 'Welcome to San Andreas', artist: 'Young Maylay', spotifyQuery: 'Young Maylay Welcome to San Andreas', mood: 'green', cover: '/assets/music-covers/hesoyam.webp' }
-  };
-  const currentTrackInfo = nowPlayingByPath[track] ?? { title: 'Corridor Theme', artist: 'Последний зачёт • OST', spotifyQuery: 'video game corridor soundtrack' };
+  const currentTrackInfo: NowPlayingTrack = nowPlayingByPath[track] ?? { title: 'Corridor Theme', artist: 'Последний зачёт • OST', spotifyQuery: 'video game corridor soundtrack' };
+  if (currentTrackInfo.cover) void prepareMusicCover(currentTrackInfo.cover);
   archetypeMusic.loop = true;
   archetypeMusic.volume = 0;
   if (corridorAmbience) {

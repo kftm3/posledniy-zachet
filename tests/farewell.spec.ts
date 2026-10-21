@@ -12,7 +12,7 @@ async function openCredits(page: Page) {
 }
 
 async function checkWritingFits(page: Page) {
-  for (const line of await page.locator('.farewell-writing text,.farewell-heart,#farewell-continue').all()) {
+  for (const line of await page.locator('.farewell-text,.farewell-heart,#farewell-continue').all()) {
     const box = (await line.boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.y).toBeGreaterThanOrEqual(0);
@@ -22,7 +22,7 @@ async function checkWritingFits(page: Page) {
 }
 
 async function checkEveryLineIsPainted(page: Page) {
-  const bounds = await page.locator('.farewell-writing text').evaluateAll(elements => elements.map(el=>{
+  const bounds = await page.locator('.farewell-text').evaluateAll(elements => elements.map(el=>{
     const r=el.getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height};
   }));
   const screenshot = (await page.screenshot()).toString('base64');
@@ -46,6 +46,20 @@ for (const phone of [false,true]) {
       const errors = monitor(page), requests: string[] = [];
       page.on('request',request=>requests.push(request.url()));
       await page.addInitScript(()=>{
+        (window as any).__penSound={starts:0,stops:0,targets:[]};
+        const start=AudioBufferSourceNode.prototype.start,stop=AudioBufferSourceNode.prototype.stop,target=AudioParam.prototype.setTargetAtTime;
+        AudioBufferSourceNode.prototype.start=function(...args: [number?,number?,number?]){
+          if(this.loop && this.buffer?.duration===2) { (window as any).__penSound.starts++;(this as any).__pen=true; }
+          return start.apply(this,args);
+        };
+        AudioBufferSourceNode.prototype.stop=function(...args: [number?]){
+          if((this as any).__pen)(window as any).__penSound.stops++;
+          return stop.apply(this,args);
+        };
+        AudioParam.prototype.setTargetAtTime=function(...args:[number,number,number]){
+          if(document.getElementById('farewell-scene'))(window as any).__penSound.targets.push(args[0]);
+          return target.apply(this,args);
+        };
         const decode = HTMLImageElement.prototype.decode;
         HTMLImageElement.prototype.decode = function() {
           if (this.classList.contains('final-result-portrait')) (window as any).__resultPhoto = this;
@@ -54,6 +68,12 @@ for (const phone of [false,true]) {
       });
       await selectCharacter(page);
       expect(requests.some(url=>url.includes('CampusFarewell'))).toBe(false);
+      if(phone)await page.evaluate(()=>{
+        SVGGraphicsElement.prototype.getBBox=()=>{throw new Error('SVG text measurement unavailable');};
+        SVGGeometryElement.prototype.getTotalLength=()=>{throw new Error('SVG geometry unavailable');};
+        let hidden=false;Object.defineProperty(document,'hidden',{configurable:true,get:()=>hidden});
+        (window as any).__setHidden=(value:boolean)=>{hidden=value;document.dispatchEvent(new Event('visibilitychange'));};
+      });
       await openCredits(page);
       await expect.poll(()=>page.evaluate(()=>(window as any).__resultPhoto?.complete && (window as any).__resultPhoto?.naturalWidth>0)).toBe(true);
       await page.locator('#ending-credits-video').evaluate(video=>video.dispatchEvent(new Event('ended')));
@@ -62,12 +82,23 @@ for (const phone of [false,true]) {
       await expect(scene).not.toHaveClass(/is-written/);
       await expect(next).toBeHidden();
       await expect(scene).toContainText('С днём рождения, КИУ!');
-      await expect.poll(()=>page.locator('#farewell-ink-0 rect').getAttribute('width')).not.toBe('0');
-      expect(await page.locator('#farewell-ink-5 rect').getAttribute('width')).toBe('0');
+      await expect.poll(()=>page.locator('#farewell-ink-0').evaluate(el=>el.clientWidth)).toBeGreaterThan(0);
+      expect(await page.locator('#farewell-ink-5').evaluate(el=>el.clientWidth)).toBe(0);
+      await expect.poll(()=>page.evaluate(()=>(window as any).__penSound.starts)).toBe(1);
+      if(phone){
+        const progress=()=>page.locator('.farewell-ink').evaluateAll(elements=>elements.reduce((sum,el)=>sum+el.clientWidth,0));
+        await page.evaluate(()=>(window as any).__setHidden(true));const paused=await progress();
+        await page.waitForTimeout(350);expect(await progress()).toBe(paused);
+        await page.evaluate(()=>(window as any).__setHidden(false));
+        await expect.poll(progress).toBeGreaterThan(paused);
+      }
       await page.keyboard.press('Tab');
       expect(await page.evaluate(()=>document.activeElement?.id)).toBe('farewell-scene');
       await expect(scene).toHaveClass(/is-written/,{timeout:12_000});
       await expect(page.locator('.farewell-heart')).toHaveCSS('stroke-dashoffset','0px');
+      const penSound=await page.evaluate(()=>(window as any).__penSound);
+      expect(penSound.stops).toBe(1);expect(Math.max(...penSound.targets)).toBeGreaterThan(0);
+      expect(penSound.targets.at(-1)).toBe(0);
       await expect(page.locator('.farewell-signature')).toHaveText('dev by kftm3');
       await expect(page.locator('#final-result-screen')).toHaveCount(0);
       await checkWritingFits(page);
@@ -106,6 +137,27 @@ test('a slow result portrait loads during the ending and farewell, without delay
   release();
   await expect(page.locator('#final-result-screen')).toBeVisible();
   expect(await page.locator('.final-result-portrait').evaluate((img:HTMLImageElement)=>img.complete && img.currentSrc.includes('student_girl5/card-'))).toBe(true);
+});
+
+test('handwriting can finish and open the results when audio is blocked',async({page})=>{
+  await page.addInitScript(()=>{
+    const resume=AudioContext.prototype.resume;
+    AudioContext.prototype.resume=function(){(window as any).__audioContext=this;return resume.call(this);};
+  });
+  await selectCharacter(page);
+  await openCredits(page);
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.evaluate(async()=>{
+    await (window as any).__audioContext.suspend();
+    (window as any).__blockedResumes=0;
+    AudioContext.prototype.resume=()=>{(window as any).__blockedResumes++;return Promise.reject(new DOMException('Blocked','NotAllowedError'));};
+  });
+  await page.locator('#ending-credits-video').evaluate(video=>video.dispatchEvent(new Event('ended')));
+  await expect(page.locator('#farewell-scene')).toHaveClass(/is-written/,{timeout:12_000});
+  await checkEveryLineIsPainted(page);
+  expect(await page.evaluate(()=>(window as any).__blockedResumes)).toBe(1);
+  await continueAfterCredits(page);
+  await expect(page.locator('#final-result-screen')).toBeVisible();
 });
 
 for (const outcome of ['skip','error']) {

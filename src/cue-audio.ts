@@ -1,6 +1,6 @@
 /** Short narrative cues are downloaded and decoded before their dialogue. */
 let context: AudioContext | null = null;
-function audioContext(): AudioContext {
+export function audioContext(): AudioContext {
   return context ??= new AudioContext();
 }
 
