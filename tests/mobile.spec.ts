@@ -76,10 +76,22 @@ for (const viewport of [{ width: 874, height: 353 }, { width: 812, height: 320 }
     await page.locator('#player-group').fill('123');
     await page.locator('#player-form button').tap();
     await settle(page);
+    const skillsScroll = page.locator('.skills-layout');
+    expect(await skillsScroll.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    for (const skillCard of await page.locator('.skill-card').all()) {
+      await skillCard.scrollIntoViewIfNeeded();
+      await contained(skillCard, skillsScroll);
+      for (const copy of await skillCard.locator('.skill-copy h2,.skill-copy p').all()) {
+        await contained(copy, skillCard);
+        expect(await copy.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+      }
+    }
     for (const [skill, count] of [['knowledge', 4], ['logic', 4], ['attention', 2]] as const) {
       const card = page.locator(`[data-skill="${skill}"]`);
       const plus = card.locator('[data-delta="1"]');
       const minus = card.locator('[data-delta="-1"]');
+      await card.scrollIntoViewIfNeeded();
+      await contained(card, page.locator('.skills-layout'));
       await contained(card, page.locator('.skills-board'));
       const cardBox = (await card.boundingBox())!;
       const footer = (await page.locator('#skills-back').boundingBox())!;
@@ -99,7 +111,10 @@ for (const viewport of [{ width: 874, height: 353 }, { width: 812, height: 320 }
     expect(await page.evaluate(() => visualViewport!.scale)).toBe(1);
     await page.locator('#skills-continue').tap();
     await settle(page);
-    await contained(page.locator('.ticket-wrap'));
+    await contained(page.locator('.ticket-viewport'));
+    expect((await page.locator('.ticket-wrap').boundingBox())!.width).toBeGreaterThan(viewport.width * .77);
+    expect(await page.locator('.ticket-wrap').evaluate(el => getComputedStyle(el).transform)).toBe('none');
+    await page.locator('#ticket-archetype-description').scrollIntoViewIfNeeded();
     await contained(page.locator('#ticket-archetype-description'), page.locator('.ticket-wrap'));
     await expect(page.locator('#ticket-archetype-description')).not.toBeEmpty();
     await contained(page.locator('#ticket-start'));
@@ -190,7 +205,16 @@ test('classroom music starts in the entry tap; story frames and exam answers fit
   await page.locator('#exam-next').tap();
   await expect(page.locator('#exam-answer-list')).toBeVisible();
   await contained(examFrame);
-  for (const button of await page.locator('#exam-answer-list button, .exam-paper-actions button').all()) await contained(button, examFrame);
+  const firstAnswerBox = (await page.locator('#exam-answer-list button').first().boundingBox())!;
+  expect(await page.locator('#exam-dialogue-text').evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  for (const button of await page.locator('#exam-answer-list button, .exam-paper-actions button').all()) {
+    await contained(button, examFrame);
+    const bounds = (await button.boundingBox())!;
+    expect(bounds.width).toBeCloseTo(firstAnswerBox.width, 0);
+    expect(bounds.height).toBeCloseTo(firstAnswerBox.height, 0);
+    expect(bounds.height).toBeLessThanOrEqual(48);
+    expect(await button.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe(14);
+  }
   await page.touchscreen.tap(400, 60);
   await page.touchscreen.tap(400, 60);
   expect(await page.evaluate(() => visualViewport!.scale)).toBe(1);
@@ -219,7 +243,10 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await contained(page.locator('#cameo-next'), page.locator('#cameo-dialogue-panel'));
   expect(await page.locator('#cameo-scene-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
   expect((await page.locator('.cameo-scene-frame').boundingBox())!.y).toBe(0);
-  for (let n = 0; n < 3; n++) await page.locator('#cameo-next').tap();
+  await page.locator('#cameo-next').tap();
+  await expect(page.locator('.cameo-scene-frame')).toHaveClass(/is-teacher-shot/);
+  await expect.poll(() => page.evaluate(() => document.querySelector('.cameo-scene-frame')!.getBoundingClientRect().bottom < document.getElementById('cameo-dialogue-panel')!.getBoundingClientRect().top)).toBe(true);
+  for (let n = 0; n < 2; n++) await page.locator('#cameo-next').tap();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('game:exam-scene-finished', {
     detail: { correct: 6, isExcellentEnding: true, archetype: 'ОТЛИЧНИК' },
   })));
@@ -236,11 +263,13 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   await contained(page.locator('#excellent-ending-next'), endingPanel);
   await contained(page.locator('#excellent-ending-text'), endingPanel);
   expect(await page.locator('#excellent-ending-image').evaluate(el => getComputedStyle(el).objectFit)).toBe('contain');
+  await expect.poll(() => page.evaluate(() => document.getElementById('excellent-ending-scene')!.getBoundingClientRect().bottom < document.querySelector('#excellent-ending .corridor-dialogue-layout')!.getBoundingClientRect().top)).toBe(true);
   for (let n = 0; n < 25 && !await page.locator('#ending-credits-video').count(); n++) await page.locator('#excellent-ending-next').tap();
   await page.locator('#ending-credits-video').evaluate(video => video.dispatchEvent(new Event('ended')));
   await expect(page.locator('#final-result-screen')).toBeVisible();
   const book = page.locator('.final-result-book');
-  await contained(book);
+  await expect(book).toBeVisible();
+  expect((await book.boundingBox())!.width).toBeGreaterThan(page.viewportSize()!.width * .8);
   const box = (await book.boundingBox())!;
   expect(box.width / box.height).toBeCloseTo(1671 / 941, 2);
   const archetypeField = page.locator('[data-field="archetype"]');
@@ -251,7 +280,12 @@ test('cameo, ending, result book and scrollable achievements remain within the v
   const photo = (await page.locator('.final-result-portrait').boundingBox())!;
   const surname = (await page.locator('[data-field="surname"]').boundingBox())!;
   expect(photo.x + photo.width).toBeLessThan(surname.x);
-  for (const field of await page.locator('.final-result-field').all()) await contained(field, book);
+  for (const field of await page.locator('.final-result-field').all()) {
+    await field.evaluate(el => el.scrollIntoView({block:'center'}));
+    await contained(field, book);
+    await contained(field);
+  }
+  expect(await page.locator('.final-result-portrait').evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
   for (const button of await page.locator('#final-result-actions button').all()) await contained(button);
   await page.getByRole('button', { name: 'ДОСТИЖЕНИЯ', exact: true }).tap();
   await expect(page.locator('.achievements-book')).toHaveCSS('opacity', '1');

@@ -61,6 +61,8 @@ for (const branch of ['friendly', 'angry'] as const) {
       await page.locator('#exam-next').click(); // Next question or cameo.
     }
     await expect(page.locator('#cameo-overlay')).toBeVisible();
+    const frame=(await page.locator('#cameo-dialogue-panel').boundingBox())!;
+    expect(frame.x + frame.width / 2).toBeCloseTo(page.viewportSize()!.width / 2,0);
     const image = page.locator('#cameo-scene-image');
     await expect(image).toHaveAttribute('src', /kftm3-entry\.webp$/);
     await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);

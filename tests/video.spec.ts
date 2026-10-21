@@ -28,8 +28,12 @@ test('optimized videos decode, advance and reach their actual end in Chromium', 
   await page.goto('./');
   for (const [path, width, height, duration] of [
     ['video/last-exam-intro.mp4', 1920, 1072, 13.531667],
-    ['assets/endings/credits.mp4', 1114, 512, 67.866667],
+    ['assets/endings/credits-v2.mp4', 1920, 880, 27.2],
   ] as const) {
+    const range = await page.request.get(path, { headers: { Range: 'bytes=0-1023' } });
+    expect(range.status()).toBe(206);
+    expect(range.headers()['content-type']).toContain('video/mp4');
+    expect((await range.body()).subarray(4, 8).toString()).toBe('ftyp');
     await page.evaluate(async source => {
       const video = document.createElement('video');
       video.id = 'decode-check';

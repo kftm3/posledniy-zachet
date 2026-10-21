@@ -28,20 +28,32 @@ for (const viewport of [{width:1280,height:720}, {width:1920,height:1080}, {widt
     const f = (await frame.boundingBox())!, b = (await next.boundingBox())!;
     expect(f.x + f.width - b.x - b.width).toBeLessThan(viewport.width * .04);
     expect(f.y + f.height - b.y - b.height).toBeLessThan(viewport.height * .04);
+    if(viewport.width >= 1600) expect((await page.locator('#exam-teacher-sprite').boundingBox())!.height).toBeLessThan(viewport.height * .85);
     const text = page.locator('#exam-dialogue-text');
     const font = await text.evaluate(el => parseFloat(getComputedStyle(el).fontSize));
     expect(font).toBeGreaterThanOrEqual(Math.min(viewport.width, viewport.height) * .018);
     await next.click(); await next.click();
     const answers = page.locator('#exam-answer-list');
     await expect(answers).toBeVisible();
+    await expect.poll(() => text.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThan(font);
     await text.evaluate(el => { el.textContent = 'Очень длинная формулировка экзаменационного вопроса, которая должна переноситься на несколько строк и оставаться отдельно от кнопок действий и вариантов ответа. '.repeat(5); });
     await inside(text, frame);
-    const questionBox = (await text.boundingBox())!, answerBox = (await answers.boundingBox())!, actionsBox = (await page.locator('.exam-paper-actions').boundingBox())!;
-    expect(questionBox.x + questionBox.width).toBeLessThan(answerBox.x);
-    expect(questionBox.y + questionBox.height).toBeLessThan(actionsBox.y);
+    await expect.poll(() => page.evaluate(() => {
+      const question=document.getElementById('exam-dialogue-text')!.getBoundingClientRect();
+      return question.bottom < document.getElementById('exam-answer-list')!.getBoundingClientRect().top
+        && question.bottom < document.querySelector('.exam-paper-actions')!.getBoundingClientRect().top;
+    })).toBe(true);
     expect(await text.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     expect(await text.evaluate(el => el.scrollHeight)).toBeGreaterThan(font * 3);
-    for (const button of await page.locator('#exam-answer-list button,.exam-paper-actions button').all()) await inside(button, frame);
+    const answerButton = (await page.locator('#exam-answer-list button').first().boundingBox())!;
+    expect(answerButton.height).toBeLessThan(viewport.height * .1);
+    expect(await text.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThan(font);
+    for (const button of await page.locator('#exam-answer-list button,.exam-paper-actions button').all()) {
+      await inside(button, frame);
+      const bounds = (await button.boundingBox())!;
+      expect(bounds.width).toBeCloseTo(answerButton.width, 0);
+      expect(bounds.height).toBeCloseTo(answerButton.height, 0);
+    }
     await page.locator('#exam-answer-list button').first().click();
     await expect(page.locator('#exam-screen')).not.toHaveClass(/exam-paper-open/);
     await inside(next, frame);
@@ -49,6 +61,7 @@ for (const viewport of [{width:1280,height:720}, {width:1920,height:1080}, {widt
     const endingFrame = page.locator('#excellent-ending .corridor-dialogue-layout');
     await inside(page.locator('#excellent-ending-next'), endingFrame);
     const en = (await page.locator('#excellent-ending-next').boundingBox())!, ef = (await endingFrame.boundingBox())!;
+    expect(ef.x + ef.width / 2).toBeCloseTo(viewport.width / 2, 0);
     expect(ef.x + ef.width - en.x - en.width).toBeCloseTo(f.x + f.width - b.x - b.width, 0);
     expect(ef.y + ef.height - en.y - en.height).toBeCloseTo(f.y + f.height - b.y - b.height, 0);
     for (let n = 0; n < 25 && !await page.locator('#ending-credits-video').count(); n++) await page.locator('#excellent-ending-next').click();
@@ -108,3 +121,18 @@ for (const viewport of [{width:1280,height:720}, {width:3840,height:2160}]) {
     await check('#teacher-next','#teacher-intro-screen .corridor-dialogue-layout');
   });
 }
+
+
+test('character selection sprites stay slightly smaller on large monitors',async({page})=>{
+  for(const viewport of [{width:2560,height:1440},{width:3840,height:2160}]){
+    await page.setViewportSize(viewport);await selectCharacter(page);
+    for(const [gender,selector] of [['male','#male-boy1-sprite'],['female','#female-girl1-sprite']] as const){
+      await page.locator(`.${gender}-panel .portrait-slot[data-index="0"]`).click();
+      await expect(page.locator(selector)).toHaveClass(/is-visible/);
+      await expect.poll(()=>page.locator(selector).evaluate(el=>el.getBoundingClientRect().height)).toBeCloseTo(viewport.height*1.16,0);
+      const box=(await page.locator(selector).boundingBox())!;
+      expect(box.y).toBeGreaterThan(-viewport.height*.05);
+      expect(box.y).toBeLessThan(viewport.height*.2);
+    }
+  }
+});

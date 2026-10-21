@@ -2353,6 +2353,7 @@ async function showFriendlyCameoBeat(): Promise<void> {
   const image = document.getElementById('cameo-scene-image') as HTMLImageElement | null;
   if (image) { await swapImage(image, beat.image); image.alt = beat.alt; }
   if (!cameoActive || version !== cameoRenderVersion) return;
+  document.querySelector('.cameo-scene-frame')?.classList.toggle('is-teacher-shot', beat.speaker === 'ПРЕПОД');
   document.querySelector('.cameo-scene-frame')?.classList.toggle('cameo-angry-shake', activeCameoBeats === angryCameoBeats && cameoBeatIndex === 1);
   const speaker = document.getElementById('cameo-speaker'); if (speaker) speaker.textContent = beat.speaker;
   const text = document.getElementById('cameo-dialogue-text'); if (text) text.textContent = beat.text;
@@ -3192,7 +3193,7 @@ function prepareCreditsVideo(): HTMLVideoElement {
     preparedCreditsVideo.id = 'ending-credits-video';
     preparedCreditsVideo.preload = 'none';
     preparedCreditsVideo.playsInline = true;
-    preparedCreditsVideo.src = '/assets/endings/credits.mp4';
+    preparedCreditsVideo.src = '/assets/endings/credits-v2.mp4';
   }
   prepareMedia(preparedCreditsVideo);
   return preparedCreditsVideo;

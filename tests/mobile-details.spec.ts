@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectCharacter, monitor } from './helpers';
+import { selectCharacter, openTicket, monitor } from './helpers';
 
 for (const phone of [false, true]) {
   test.describe(phone ? 'phone ticket portrait' : 'desktop ticket portrait', () => {
@@ -79,5 +79,59 @@ test.describe('phone cheat input', () => {
     await expect(panel).toBeHidden();
     expect(await page.evaluate(() => visualViewport!.scale)).toBe(1);
     expect(errors).toEqual([]);
+  });
+});
+
+
+test.describe('phone layout detection', () => {
+  test.use({viewport:{width:980,height:430},isMobile:true,hasTouch:false,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'});
+  test('the cheat button remains reachable when the phone reports a fine pointer', async ({page}) => {
+    await selectCharacter(page);
+    expect(await page.evaluate(()=>matchMedia('(pointer:coarse)').matches)).toBe(false);
+    await expect(page.locator('html')).toHaveClass(/phone-layout/);
+    const toggle=page.locator('#character-cheat-toggle');
+    await expect(toggle).toBeVisible();
+    expect(await toggle.evaluate(el=>{
+      const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#character-cheat-toggle')===el;
+    })).toBe(true);
+    await toggle.click();
+    await expect(page.locator('#character-cheat-panel')).toBeVisible();
+    await page.locator('#character-cheat-input').fill('DEVIL');
+    await page.locator('.character-cheat-submit').click();
+    await expect(page.locator('#male-boy7-sprite')).toHaveClass(/is-visible/);
+    await page.setViewportSize({width:1170,height:430});
+    await expect(toggle).toBeVisible();
+  });
+});
+
+test.describe('phone ticket zoom', () => {
+  test.use({viewport:{width:874,height:353},isMobile:true,hasTouch:true,deviceScaleFactor:3});
+  test('the full-size ticket scrolls and its fields stay attached to the artwork during zoom and resize',async ({page})=>{
+    await openTicket(page);
+    const viewport=page.locator('.ticket-viewport'),ticket=page.locator('.ticket-wrap');
+    await expect(ticket).toBeVisible();
+    expect(await viewport.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
+    const normalized=()=>ticket.evaluate(root=>{
+      const art=root.querySelector('.ticket-art')!.getBoundingClientRect();
+      return [...root.querySelectorAll('.ticket-photo,.ticket-field-value,.ticket-archetype-name,.ticket-archetype-description')].map(el=>{
+        const r=el.getBoundingClientRect();return [(r.x-art.x)/art.width,(r.y-art.y)/art.height,r.width/art.width,r.height/art.height];
+      });
+    });
+    const before=await normalized();
+    const cdp=await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setPageScaleFactor',{pageScaleFactor:2});
+    expect(await page.evaluate(()=>visualViewport!.scale)).toBe(2);
+    expect(await normalized()).toEqual(before);
+    await cdp.send('Emulation.setPageScaleFactor',{pageScaleFactor:1});
+    await page.setViewportSize({width:812,height:320});
+    await ticket.evaluate(el=>{el.tabIndex=-1;el.focus();});
+    expect(await ticket.evaluate(el=>getComputedStyle(el).transform)).toBe('none');
+    expect((await ticket.boundingBox())!.width).toBeGreaterThan(760);
+    const after=await normalized();
+    for(let n=0;n<before.length;n++)for(let d=0;d<4;d++)expect(after[n][d]).toBeCloseTo(before[n][d],2);
+    await viewport.evaluate(el=>el.scrollTop=el.scrollHeight);
+    expect(await viewport.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+    await expect(page.locator('#ticket-start')).toBeVisible();
+    await expect(page.locator('#ticket-back')).toBeVisible();
   });
 });

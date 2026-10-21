@@ -140,11 +140,13 @@
         <section class="game-stage ticket-screen is-hidden" id="ticket-screen" aria-label="Подтверждение персонажа" aria-hidden="true">
           <div class="ticket-background" aria-hidden="true"></div><div class="ticket-shade" aria-hidden="true"></div>
           <header class="ticket-heading"><h1><span>ПОДТВЕРДИТЕ</span><span>ПЕРСОНАЖА</span></h1><p>Проверьте данные. После подтверждения<br>начнётся игра.</p></header>
+          <div class="ticket-viewport" role="region" aria-label="Студенческий билет">
           <div class="ticket-wrap">
             <img loading="lazy" decoding="async" class="ticket-art" src="/assets/student-ticket.webp" alt="Студенческий билет Казанского инновационного университета" draggable="false" />
             <div class="ticket-photo"><img decoding="async" id="ticket-photo" alt="Выбранный персонаж" /></div>
             <div class="ticket-field-value ticket-surname" id="ticket-surname">Фамилия</div><div class="ticket-field-value ticket-name" id="ticket-name">Имя</div><div class="ticket-field-value ticket-group" id="ticket-group">Группа</div>
             <div class="ticket-archetype-icon" id="ticket-archetype-icon" aria-hidden="true"></div><div class="ticket-archetype-name" id="ticket-archetype-name">УНИВЕРСАЛ</div><div class="ticket-archetype-description" id="ticket-archetype-description">Твой стиль определится по распределению навыков.</div>
+          </div>
           </div>
           <button class="ticket-back" id="ticket-back" type="button"><span>≪</span> НАЗАД</button><button class="ticket-start" id="ticket-start" type="button">НАЧАТЬ ИГРУ <span>→</span></button>
         </section>
